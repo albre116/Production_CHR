@@ -1,0 +1,417 @@
+rm(list=ls())
+gc()
+#setwd("~/GitHub/CHR_rev_2")
+#source("functions.r")
+#op<-par()
+#load("Bundle_2.RData")
+#x<-data.frame(DATA_FILL)
+#date<-as.POSIXct(x$Align_date,origin="1970-01-01")
+#date<-x$Align_date
+#date_cols<-grep("date",colnames(x))
+#x<-x[,-date_cols]
+#colnames(x)<-gsub("_data","",colnames(x))
+
+
+shinyUI(fluidPage(
+  fluidRow(column(3,
+                  sidebarPanel(width=12,
+                               titlePanel(title="Inputs"),
+                               conditionalPanel(condition="input.navbar11=='raw_data'",    
+                                                fileInput('file1', 'Choose CSV File',
+                                                          accept=c('text/csv', 'text/comma-separated-values,text/plain', '.csv')),
+                                                tags$hr(),
+                                                checkboxInput('header', 'Header', TRUE),
+                                                radioButtons('sep', 'Separator',
+                                                             c(Comma=',',
+                                                               Semicolon=';',
+                                                               Tab='\t'),
+                                                             ','),
+                                                radioButtons('quote', 'Quote',
+                                                             c(None='',
+                                                               'Double Quote'='"',
+                                                               'Single Quote'="'"),
+                                                             '"'),
+                                                sliderInput("rand_samp","Random Sample of Data (%)",0,100,15,step=1),
+                                                selectInput("lanes_choice","Number of Lanes to Construct",c(1,2,3))
+                                                ),
+                               conditionalPanel(condition="input.navbar11=='api_data'",
+                                                actionButton("refresh","Refresh API Data?")
+                               ),
+                               conditionalPanel(condition="input.navbar11=='api_data'",
+                                                actionButton("saveapi","Save API Indicator Changes?")
+                               ),
+                               conditionalPanel(condition="input.navbar11=='outlier'",
+                                                uiOutput("date"),
+                                                uiOutput("cost_lower"),
+                                                uiOutput("cost_upper"),
+                                                uiOutput("miles_lower"),
+                                                uiOutput("miles_upper"),
+                                                uiOutput("RPM_lower"),
+                                                uiOutput("RPM_upper")
+                               ),
+                               conditionalPanel(condition="input.navbar11=='lane_1_construct'",
+                                                textInput("lane1_id","Name of Lane 1",value="Lane_1"),
+                                                h4("Select Origin Zips"),
+                                                uiOutput("l1_orig_zip"),
+                                                h4("Select Destination Zips"),
+                                                uiOutput("l1_dest_zip"),
+                                                h4("Select Stop Count"),
+                                                uiOutput("l1_stop_ct")
+                               ),
+                               conditionalPanel(condition="input.navbar11=='lane_2_construct'",
+                                                textInput("lane2_id","Name of Lane 2",value="Lane_2"),
+                                                h4("Select Origin Zips"),
+                                                uiOutput("l2_orig_zip"),
+                                                h4("Select Destination Zips"),
+                                                uiOutput("l2_dest_zip"),
+                                                h4("Select Stop Count"),
+                                                uiOutput("l2_stop_ct")
+                               ),
+                               conditionalPanel(condition="input.navbar11=='lane_3_construct'",
+                                                textInput("lane3_id","Name of Lane 3",value="Lane_3"),
+                                                h4("Select Origin Zips"),
+                                                uiOutput("l3_orig_zip"),
+                                                h4("Select Destination Zips"),
+                                                uiOutput("l3_dest_zip"),
+                                                h4("Select Stop Count"),
+                                                uiOutput("l3_stop_ct")
+                               ),
+                               conditionalPanel(condition = "input.navbar1=='panel2'", uiOutput("select_radio")),
+                               conditionalPanel(condition = "input.navbar1=='panel3'|| input.navbar1=='panel4'", uiOutput("min_lead_slider")),
+                               conditionalPanel(condition = "input.navbar1=='panel3'|| input.navbar1=='panel4'", uiOutput("max_lead_slider")),
+                               conditionalPanel(condition = "input.navbar1=='panel3'|| input.navbar1=='panel4'", uiOutput("max_model_slider")),
+                               conditionalPanel(condition = "input.navbar1=='panel3'|| input.navbar1=='panel4'", uiOutput("gamma_numeric")),
+                               conditionalPanel(condition = "input.navbar1=='panel3'|| input.navbar1=='panel4'", uiOutput("backcast_ahead_slider")),
+                               conditionalPanel(condition = "input.navbar1=='panel3' && input.navbar13=='var_import' || input.navbar13=='cond_effect'", uiOutput("pick_numeric")),
+                               conditionalPanel(condition = "input.navbar1=='panel3' && input.navbar13=='var_import' || input.navbar13=='cond_effect'", uiOutput("linear")),
+                               conditionalPanel(condition = "input.navbar1=='panel3' && input.navbar13=='var_import' || input.navbar13=='cond_effect'", uiOutput("seasonality")),
+                               conditionalPanel(condition = "input.navbar1=='panel3' && input.navbar13=='var_import' || input.navbar13=='cond_effect'", uiOutput("interaction_check")),
+                               conditionalPanel(condition = "input.navbar1=='panel3' && input.navbar13=='var_import' || input.navbar13=='cond_effect'", uiOutput("interaction_split")),
+                               conditionalPanel(condition = "input.navbar1=='panel3' && input.navbar13=='var_import' || input.navbar13=='cond_effect'", uiOutput("response_radio")),
+                               conditionalPanel(condition = "input.navbar1=='panel3' && input.navbar13=='var_import' || input.navbar13=='cond_effect'", uiOutput("predictors_checkgroup")),
+                               conditionalPanel(condition = "input.navbar1=='panel3' && input.navbar13=='GAM_effects'", downloadButton("effects","Download Conditional Effects (CSV)")),
+                               conditionalPanel(condition = "input.navbar1=='panel4' && input.navbar14=='preds'", uiOutput("CI_percentile")),
+                               conditionalPanel(condition = "input.navbar1=='panel4' && input.navbar14=='pred_fwd' | input.navbar14=='preds'", uiOutput("matrix_values")),
+                               conditionalPanel(condition = "input.navbar1=='panel4' && input.navbar14=='gam_pred'", downloadButton("predictions_GAM","Download GAM Predictions (CSV)")),
+                               conditionalPanel(condition = "input.navbar1=='panel4' && input.navbar14=='bcst_pred'", uiOutput("backcast_length_slider"))
+                  )),
+           column(9,navbarPage(title = "Analysis Evaluation",id = "navbar1",
+                               tabPanel("Dataset Selection", value = "panel1",
+                                        navbarPage(title = "", id = "navbar11",
+                                                   tabPanel("Raw Data",dataTableOutput("raw_data"),value="raw_data"),
+                                                   tabPanel("Data Selector",fluidPage(fluidRow(column(6,h4("Select Stop Count"),uiOutput("stop_chooser"),
+                                                                                                      h4("Select Total Load Cost"),uiOutput("cost_chooser"),
+                                                                                                      h4("Select Origin zip"),uiOutput("origin_chooser"),
+                                                                                                      h4("Select Destination zip"),uiOutput("destination_chooser"),
+                                                                                                      h4("Select Load Region"),uiOutput("load_region"),
+                                                                                                      h4("Select Delivery State"),uiOutput("delivery_state")
+                                                   ),
+                                                   column(6,h4("Select Date (Numeric Format)"),uiOutput("date_chooser"),
+                                                          h4("Select Load Mileage"),uiOutput("mileage_chooser"),
+                                                          h4("Select Lane Descriptions"),uiOutput("lane_chooser"),
+                                                          h4("Select Origin State"),uiOutput("orig_state"),
+                                                          h4("Select Delivery Region"),uiOutput("delivery_region")
+                                                   ))),value="data_load"),
+                                                   tabPanel("Selected Data",dataTableOutput("selected_data"),value="selected_data"),
+                                                   tabPanel("Outlier Removal",fluidPage(fluidRow(plotOutput("outlier_rpm_plot")),
+                                                                                        fluidRow(dataTableOutput("outlier_rpm")))
+                                                            ,value="outlier"),
+                                                   tabPanel("Lane 1 Constructor",fluidPage(fluidRow(column(6,plotOutput("l1_raw_plot"),
+                                                                                                           h4("Select Lanes To Include"),uiOutput("l1_lane_desc"),
+                                                                                                           h4("Select Delivery States to Include"),uiOutput("l1_delivery_state")
+                                                                                                           
+                                                   ),
+                                                   column(6,h4("Select Origin States to Include"),uiOutput("l1_orig_state"),
+                                                          h4("Select Load Regions to Include"),uiOutput("l1_load_region"),
+                                                          h4("Select Delivery Regions to Include"),uiOutput("l1_delivery_region")
+                                                          
+                                                   ))),value="lane_1_construct"),
+                                                   tabPanel("Lane 2 Constructor",fluidPage(fluidRow(column(6,plotOutput("l2_raw_plot"),
+                                                                                                           h4("Select Lanes To Include"),uiOutput("l2_lane_desc"),
+                                                                                                           h4("Select Delivery States to Include"),uiOutput("l2_delivery_state")
+                                                                                                           
+                                                   ),
+                                                   column(6,h4("Select Origin States to Include"),uiOutput("l2_orig_state"),
+                                                          h4("Select Load Regions to Include"),uiOutput("l2_load_region"),
+                                                          h4("Select Delivery Regions to Include"),uiOutput("l2_delivery_region")
+                                                          
+                                                   ))),value="lane_2_construct"),
+                                                   tabPanel("Lane 3 Constructor",fluidPage(fluidRow(column(6,plotOutput("l3_raw_plot"),
+                                                                                                           h4("Select Lanes To Include"),uiOutput("l3_lane_desc"),
+                                                                                                           h4("Select Delivery States to Include"),uiOutput("l3_delivery_state")
+                                                                                                           
+                                                   ),
+                                                   column(6,h4("Select Origin States to Include"),uiOutput("l3_orig_state"),
+                                                          h4("Select Load Regions to Include"),uiOutput("l3_load_region"),
+                                                          h4("Select Delivery Regions to Include"),uiOutput("l3_delivery_region")
+                                                          
+                                                   ))),value="lane_3_construct"),
+                                                   tabPanel("All Lanes Raw Data",dataTableOutput("lanes"),value="all_lanes"),
+                                                   tabPanel("API Data",uiOutput("raw_api"),uiOutput("API_choice"),dataTableOutput("raw_indicators"),value="api_data"),
+                                                   tabPanel("Weekly Averages",dataTableOutput("weekly_averages"),value="weekly_avgs")
+                                        )
+                               ),
+                               tabPanel("Raw/Imputed Data", value = "panel2",
+                                        navbarPage(title = "", id = "navbar12",
+                                                   tabPanel("Raw Data",plotOutput("Raw"), dataTableOutput("raw_indicators_2"),value = "raw"),
+                                                   tabPanel("Imputed Data", plotOutput("Impute"),dataTableOutput("raw_indicators_3"),value = "impute")
+                                        )
+                               ),
+                               tabPanel("Model Selection", value = "panel3",
+                                        navbarPage(title = "", id = "navbar13",
+                                                   tabPanel("Variable Importance", showOutput("Var_Import","highcharts"),value="var_import"),
+                                                   tabPanel("Conditional Effects", plotOutput("cond_effect"),value="cond_effect"),
+                                                   tabPanel("Diagnostics", plotOutput("diagnostic"),value="diagnostic"),
+                                                   tabPanel("Model Fit", showOutput("fit","highcharts"),value="fit"),
+                                                   tabPanel("ARIMA Error Stream", plotOutput("ts_error"),value="ts_error"),
+                                                   tabPanel("Table of Effects", dataTableOutput("GAM_effects"),value="GAM_effects")
+                                        )
+                               ),
+                               tabPanel("Prediction", value = "panel4",
+                                        navbarPage(title = "", id = "navbar14",
+                                                   tabPanel("Predictor Values", plotOutput("pred_fwd"), value="pred_fwd"),
+                                                   tabPanel("Model Predictions", showOutput("preds","highcharts"), value = "preds"),
+                                                   tabPanel("Table of Predictions", dataTableOutput("GAM_predictions"), value = "gam_pred"),
+                                                   tabPanel("Backcasting Predictions", showOutput("Backcast_graph","highcharts"), value = "bcst_pred")
+                                        )
+                               )
+           )
+           ))))
+
+# shinyUI(navbarPage(
+#   title = "Analysis Evaluation",
+#   tabPanel("Raw/Imputed Data",sidebarLayout(
+#     sidebarPanel(radioButtons(inputId= "select",
+#                               label = "Data Selection for Plots",
+#                               choices = choice3)),
+#     mainPanel(
+#            navbarPage(title = "",
+#                       tabPanel("Raw Data", plotOutput("Raw")), 
+#                       tabPanel("Imputed Data", plotOutput("Impute")))))
+#            ),
+#   tabPanel("Model Selection", sidebarLayout(
+#     sidebarPanel(
+#       sliderInput(inputId = "min_lead",
+#                   label = "Minimum Lead to Fit (in weeks)",
+#                   min = 0,
+#                   max = 12,
+#                   value = 0,
+#                   step = 1
+#                   ),
+#       sliderInput(inputId="max_lead",
+#                   label="Maximum Lead to Fit (in weeks)",
+#                   min=0,
+#                   max=12,
+#                   value=0,
+#                   step=1                
+#       ),
+#       sliderInput(inputId="max_model",
+#                   label="Number of Variables in Model",
+#                   min=1,
+#                   max=10,
+#                   value=1,
+#                   step=1                
+#       ),
+#       numericInput(inputId="gamma", 
+#                    label="smooth penalty:", 
+#                    value=1.4
+#                    
+#       ),
+#       sliderInput(inputId="backcast_ahead",
+#                   label="How Many Weeks to Predict Ahead?",
+#                   min=1,
+#                   max=52,
+#                   value=52,
+#                   step=1                
+#       ),
+#       numericInput(inputId="pick", 
+#                    label="Variable to Pick to Add to Model:", 
+#                    value=1
+#                    
+#       ),
+#       checkboxInput(inputId = "interaction",
+#                     label = "1/2 year Interaction for Volume Terms?",
+#                     value=FALSE
+#       ),
+#       radioButtons(inputId = "response",
+#                    label = "Select Response",
+#                    choices = choice_r, selected=names(choice_r)[sel_r]
+#       ),
+#       checkboxGroupInput(inputId = "predictors",
+#                          label = "Select Predictors",
+#                          choices = choice, selected=names(choice)[sel]
+#       )
+#       ),
+#     mainPanel(
+#       navbarPage(title = "",
+#                  tabPanel("Variable Importance", plotOutput("Var_Import")),
+#                  tabPanel("Conditional Effects", plotOutput("cond_effect")),
+#                  tabPanel("Diagnostics", plotOutput("diagnostic")),
+#                  tabPanel("Model Fit", plotOutput("fit")),
+#                  tabPanel("ARIMA Error Stream", plotOutput("ts_error")),
+#                  tabPanel("Table of Effects", dataTableOutput("GAM_effects"))
+#       )
+#     )
+#   )),
+#   tabPanel("Prediction", sidebarLayout(
+#     sidebarPanel(
+#       sliderInput(inputId = "min_lead",
+#                   label = "Minimum Lead to Fit (in weeks)",
+#                   min = 0,
+#                   max = 12,
+#                   value = 0,
+#                   step = 1
+#       ),
+#       sliderInput(inputId="max_lead",
+#                   label="Maximum Lead to Fit (in weeks)",
+#                   min=0,
+#                   max=12,
+#                   value=0,
+#                   step=1                
+#       ),
+#       sliderInput(inputId="max_model",
+#                   label="Number of Variables in Model",
+#                   min=1,
+#                   max=10,
+#                   value=1,
+#                   step=1                
+#       ),
+#       numericInput(inputId="gamma", 
+#                    label="smooth penalty:", 
+#                    value=1.4
+#                    
+#       ),
+#       sliderInput(inputId="backcast_ahead",
+#                   label="How Many Weeks to Predict Ahead?",
+#                   min=1,
+#                   max=52,
+#                   value=52,
+#                   step=1                
+#       ),
+#       sliderInput(inputId = "backcast_length",
+#                   label = "Length of Backcast Fit (in weeks)",
+#                   min = 1,
+#                   max = 52,
+#                   value = 52,
+#                   step = 1                
+#       ),
+#       uiOutput("matrix_values")
+#       
+#     ),
+#     mainPanel(
+#       navbarPage(title = "",
+#                  tabPanel("Predictor Values", plotOutput("pred_fwd")),
+#                  tabPanel("Model Predictions", plotOutput("preds")),
+#                  tabPanel("Table of Predictions", dataTableOutput("GAM_predictions")),
+#                  tabPanel("Backcasting Predictions", plotOutput("Backcast_graph"))
+#       )
+#     )
+#   ))
+# ))
+
+
+# shinyUI(fluidPage( 
+#   
+#   titlePanel("Modeling Scenario"), 
+#   sidebarLayout(
+#     sidebarPanel( 
+#       
+#       sliderInput(inputId = "min_lead",
+#                   label = "Minimum Lead to Fit (in weeks)",
+#                   min = 0,
+#                   max = 12,
+#                   value = 0,
+#                   step = 1                
+#       ),
+#       
+#       sliderInput(inputId="max_lead",
+#                   label="Maximum Lead to Fit (in weeks)",
+#                   min=0,
+#                   max=12,
+#                   value=0,
+#                   step=1                
+#       ),
+#       sliderInput(inputId="max_model",
+#                   label="Number of Variables in Model",
+#                   min=1,
+#                   max=10,
+#                   value=1,
+#                   step=1                
+#       ),
+#       numericInput(inputId="gamma", 
+#                    label="smooth penalty:", 
+#                    value=1.4
+#                    
+#       ),
+#       sliderInput(inputId="backcast_ahead",
+#                   label="How Many Weeks to Predict Ahead?",
+#                   min=1,
+#                   max=52,
+#                   value=52,
+#                   step=1                
+#       ),
+#       conditionalPanel(condition="input.tabset1=='var_import'|| input.tabset1=='cond_effect'",
+#                        numericInput(inputId="pick", 
+#                                     label="Variable to Pick to Add to Model:", 
+#                                     value=1
+#                                     
+#                        )),
+#       
+#       conditionalPanel(condition="input.tabset1=='var_import'|| input.tabset1=='cond_effect'",
+#                        checkboxInput(inputId = "interaction",
+#                                      label = "1/2 year Interaction for Volume Terms?",
+#                                      value=FALSE
+#                        )),
+#       conditionalPanel(condition="input.tabset1=='var_import'|| input.tabset1=='cond_effect'",
+#                        radioButtons(inputId = "response",
+#                                     label = "Select Response",
+#                                     choices = choice_r, selected=names(choice_r)[sel_r]
+#                        )),
+#       conditionalPanel(condition="input.tabset1=='var_import' || input.tabset1=='cond_effect'",
+#                        checkboxGroupInput(inputId = "predictors",
+#                                           label = "Select Predictors",
+#                                           choices = choice, selected=names(choice)[sel]
+#                        )),
+#       
+#       conditionalPanel(condition="input.tabset1=='pred_fwd' || input.tabset1=='preds'",
+#                        uiOutput("matrix_values")
+#                        
+#       ),
+#       conditionalPanel(condition="input.tabset1=='raw' || input.tabset1=='impute'",
+#                        radioButtons(inputId = "select",
+#                                     label = "Data Selection for Plot",
+#                                     choices = choice3
+#                        )),
+#       conditionalPanel(condition="input.tabset1=='bcst_pred'",
+#                        sliderInput(inputId = "backcast_length",
+#                                    label = "Length of Backcast Fit (in weeks)",
+#                                    min = 1,
+#                                    max = 52,
+#                                    value = 52,
+#                                    step = 1                
+#                        ))
+#       
+#       
+#       
+#       
+#       
+#       
+#     ),
+#     mainPanel(
+#       tabsetPanel( id="tabset1",
+#                    tabPanel("Variable Importance", plotOutput("Var_Import"),value="var_import"),
+#                    tabPanel("Conditional Effects", plotOutput("cond_effect"),value="cond_effect"),
+#                    tabPanel("Diagnostics", plotOutput("diagnostic"),value="diagnostic"),
+#                    tabPanel("Model Fit", plotOutput("fit"),value="fit"),
+#                    tabPanel("Predictor Values", plotOutput("pred_fwd"),value="pred_fwd"),
+#                    tabPanel("ARIMA Error Stream", plotOutput("ts_error"),value="ts_error"),
+#                    tabPanel("Model Predictions", plotOutput("preds"),value="preds"),
+#                    tabPanel("Table of Effects", dataTableOutput("GAM_effects"),value="GAM_effects"),
+#                    tabPanel("Table of Predictions", dataTableOutput("GAM_predictions"),value="GAM_predictions"),
+#                    tabPanel("Raw Data", plotOutput("Raw"),value="raw"), 
+#                    tabPanel("Imputed Data", plotOutput("Impute"),value="impute"),
+#                    tabPanel("Backcasting Predictions", plotOutput("Backcast_graph"),value="bcst_pred")
+#       )
+#     )
+#   )
+# ))
