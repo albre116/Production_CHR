@@ -35,10 +35,7 @@ shinyUI(fluidPage(
                                                 selectInput("lanes_choice","Number of Lanes to Construct",c(1,2,3))
                                                 ),
                                conditionalPanel(condition="input.navbar11=='api_data'",
-                                                actionButton("refresh","Refresh API Data?")
-                               ),
-                               conditionalPanel(condition="input.navbar11=='api_data'",
-                                                actionButton("saveapi","Save API Indicator Changes?")
+                                                actionButton("refresh","Refresh API Data & Save Indicator Changes?")
                                ),
                                conditionalPanel(condition="input.navbar11=='outlier'",
                                                 uiOutput("date"),

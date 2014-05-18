@@ -579,6 +579,32 @@ shinyServer(function(input, output) { # server is defined within these parenthes
   })
   
   
+  READ_APICSV <- reactive({
+    api_readtable <- read.csv(header = TRUE, file = "census_api.csv",sep=",")
+    apicolnames <- colnames(api_readtable)
+    api_readtable <- data.frame(rbind(toupper(colnames(api_readtable)),as.matrix(api_readtable)))
+    colnames(api_readtable) <- apicolnames
+    return(structure(list("api_readtable" = api_readtable, "apicolnames" = apicolnames)))
+  })
+  
+  
+  API_Update<-reactive({
+    if(input$refresh==0 & file.exists("census_api.csv")){
+      api_readtable <- READ_APICSV()[["api_readtable"]]
+      
+    }
+    else{
+      isolate({
+        
+        api_readtable <- data.frame(input$api_names)
+        colnames(api_readtable) <- READ_APICSV()[["apicolnames"]]
+        write.csv(api_readtable[2:nrow(api_readtable),], file = "census_api.csv", row.names = FALSE)
+        
+      })}
+    return(api_readtable)
+    
+    
+  })
   
   API<-reactive({
     CHR<-FINAL()
@@ -1580,31 +1606,7 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     
   })
   
-READ_APICSV <- reactive({
-  api_readtable <- read.csv(header = TRUE, file = "census_api.csv",sep=",")
-  apicolnames <- colnames(api_readtable)
-  api_readtable <- data.frame(rbind(toupper(colnames(api_readtable)),as.matrix(api_readtable)))
-  colnames(api_readtable) <- apicolnames
-  return(structure(list("api_readtable" = api_readtable, "apicolnames" = apicolnames)))
-})
 
-API_Update<-reactive({
-  if(input$saveapi==0 & file.exists("census_api.csv")){
-    api_readtable <- READ_APICSV()[["api_readtable"]]
-    
-  }
-  else{
-    isolate({
-      
-      api_readtable <- data.frame(input$api_names)
-      colnames(api_readtable) <- READ_APICSV()[["apicolnames"]]
-      write.csv(api_readtable[2:nrow(api_readtable),], file = "census_api.csv", row.names = FALSE)
-      
-    })}
-  return(api_readtable)
-  
-  
-})
 
   ########################################################
   ################ New outputs from bundle 1####
