@@ -34,6 +34,22 @@ shinyUI(fluidPage(
                                                 sliderInput("rand_samp","Random Sample of Data (%)",0,100,15,step=1),
                                                 selectInput("lanes_choice","Number of Lanes to Construct",c(1,2,3))
                                                 ),
+                               conditionalPanel(condition="input.navbar11=='api_data'",    
+                                                fileInput('api_file', 'Choose API CSV Data File',
+                                                          accept=c('text/csv', 'text/comma-separated-values,text/plain', '.csv')),
+                                                tags$hr(),
+                                                checkboxInput('header', 'Header', TRUE),
+                                                radioButtons('sep', 'Separator',
+                                                             c(Comma=',',
+                                                               Semicolon=';',
+                                                               Tab='\t'),
+                                                             ','),
+                                                radioButtons('quote', 'Quote',
+                                                             c(None='',
+                                                               'Double Quote'='"',
+                                                               'Single Quote'="'"),
+                                                             '"')
+                               ),
                                conditionalPanel(condition="input.navbar11=='api_data'",
                                                 actionButton("refresh","Refresh API Data & Save Indicator Changes?")
                                ),

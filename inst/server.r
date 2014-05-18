@@ -580,7 +580,12 @@ shinyServer(function(input, output) { # server is defined within these parenthes
   
   
   READ_APICSV <- reactive({
-    api_readtable <- read.csv(header = TRUE, file = "census_api.csv",sep=",")
+    inFile <- input$api_file
+    if (is.null(inFile))
+      return(NULL)
+    api_readtable<-read.csv(inFile$datapath, header=input$header, sep=input$sep, quote=input$quote, na.strings=c("n/a","XXX"),nrows=-1)
+    
+    #api_readtable <- read.csv(header = TRUE, file = "census_api.csv",sep=",")
     apicolnames <- colnames(api_readtable)
     api_readtable <- data.frame(rbind(toupper(colnames(api_readtable)),as.matrix(api_readtable)))
     colnames(api_readtable) <- apicolnames
