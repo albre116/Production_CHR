@@ -64,30 +64,26 @@ shinyUI(fluidPage(
                                ),
                                conditionalPanel(condition="input.navbar11=='lane_1_construct'",
                                                 textInput("lane1_id","Name of Lane 1",value="Lane_1"),
-                                                h4("Select Origin Zips"),
-                                                uiOutput("l1_orig_zip"),
-                                                h4("Select Destination Zips"),
-                                                uiOutput("l1_dest_zip"),
                                                 h4("Select Stop Count"),
                                                 uiOutput("l1_stop_ct")
+                                                #h4("Select Lanes To Include"),
+                                                #uiOutput("l1_lane_desc")
                                ),
                                conditionalPanel(condition="input.navbar11=='lane_2_construct'",
                                                 textInput("lane2_id","Name of Lane 2",value="Lane_2"),
                                                 h4("Select Origin Zips"),
-                                                uiOutput("l2_orig_zip"),
-                                                h4("Select Destination Zips"),
-                                                uiOutput("l2_dest_zip"),
                                                 h4("Select Stop Count"),
                                                 uiOutput("l2_stop_ct")
+                                                #h4("Select Lanes To Include"),
+                                                #uiOutput("l2_lane_desc")
+                                                
                                ),
                                conditionalPanel(condition="input.navbar11=='lane_3_construct'",
                                                 textInput("lane3_id","Name of Lane 3",value="Lane_3"),
-                                                h4("Select Origin Zips"),
-                                                uiOutput("l3_orig_zip"),
-                                                h4("Select Destination Zips"),
-                                                uiOutput("l3_dest_zip"),
                                                 h4("Select Stop Count"),
                                                 uiOutput("l3_stop_ct")
+                                                #h4("Select Lanes To Include"),
+                                                #uiOutput("l3_lane_desc")
                                ),
                                conditionalPanel(condition = "input.navbar1=='panel2'", uiOutput("select_radio")),
                                conditionalPanel(condition = "input.navbar1=='panel3'|| input.navbar1=='panel4'", uiOutput("min_lead_slider")),
@@ -129,36 +125,39 @@ shinyUI(fluidPage(
                                                    tabPanel("Outlier Removal",fluidPage(fluidRow(plotOutput("outlier_rpm_plot")),
                                                                                         fluidRow(dataTableOutput("outlier_rpm")))
                                                             ,value="outlier"),
-                                                   tabPanel("Lane 1 Constructor",fluidPage(fluidRow(column(6,plotOutput("l1_raw_plot"),
-                                                                                                           h4("Select Lanes To Include"),uiOutput("l1_lane_desc"),
-                                                                                                           h4("Select Delivery States to Include"),uiOutput("l1_delivery_state")
-                                                                                                           
+                                                   tabPanel("Lane 1 Constructor",fluidPage(fluidRow(column(12,plotOutput("l1_raw_plot"))),
+                                                                                           fluidRow(column(6,h4("Origin Parameters"),
+                                                                                                           h4("Select Origin Zips"), uiOutput("l1_orig_zip"),
+                                                                                                           h4("Select Origin States to Include"),uiOutput("l1_orig_state"),
+                                                                                                           h4("Select Load Regions to Include"),uiOutput("l1_load_region")
                                                    ),
-                                                   column(6,h4("Select Origin States to Include"),uiOutput("l1_orig_state"),
-                                                          h4("Select Load Regions to Include"),uiOutput("l1_load_region"),
+                                                   column(6,h4("Destination Parameters"),
+                                                          h4("Select Destination Zips"), uiOutput("l1_dest_zip"),
+                                                          h4("Select Delivery States to Include"),uiOutput("l1_delivery_state"),
                                                           h4("Select Delivery Regions to Include"),uiOutput("l1_delivery_region")
-                                                          
                                                    ))),value="lane_1_construct"),
-                                                   tabPanel("Lane 2 Constructor",fluidPage(fluidRow(column(6,plotOutput("l2_raw_plot"),
-                                                                                                           h4("Select Lanes To Include"),uiOutput("l2_lane_desc"),
-                                                                                                           h4("Select Delivery States to Include"),uiOutput("l2_delivery_state")
-                                                                                                           
-                                                   ),
-                                                   column(6,h4("Select Origin States to Include"),uiOutput("l2_orig_state"),
-                                                          h4("Select Load Regions to Include"),uiOutput("l2_load_region"),
-                                                          h4("Select Delivery Regions to Include"),uiOutput("l2_delivery_region")
-                                                          
-                                                   ))),value="lane_2_construct"),
-                                                   tabPanel("Lane 3 Constructor",fluidPage(fluidRow(column(6,plotOutput("l3_raw_plot"),
-                                                                                                           h4("Select Lanes To Include"),uiOutput("l3_lane_desc"),
-                                                                                                           h4("Select Delivery States to Include"),uiOutput("l3_delivery_state")
-                                                                                                           
-                                                   ),
-                                                   column(6,h4("Select Origin States to Include"),uiOutput("l3_orig_state"),
-                                                          h4("Select Load Regions to Include"),uiOutput("l3_load_region"),
-                                                          h4("Select Delivery Regions to Include"),uiOutput("l3_delivery_region")
-                                                          
-                                                   ))),value="lane_3_construct"),
+                                                   tabPanel("Lane 2 Constructor",fluidPage(fluidRow(column(12,plotOutput("l2_raw_plot"))),
+                                                                                           fluidRow(column(6,h4("Origin Parameters"),
+                                                                                                           h4("Select Origin Zips"), uiOutput("l2_orig_zip"),
+                                                                                                           h4("Select Origin States to Include"),uiOutput("l2_orig_state"),
+                                                                                                           h4("Select Load Regions to Include"),uiOutput("l2_load_region")
+                                                                                           ),
+                                                                                           column(6,h4("Destination Parameters"),
+                                                                                                  h4("Select Destination Zips"), uiOutput("l2_dest_zip"),
+                                                                                                  h4("Select Delivery States to Include"),uiOutput("l2_delivery_state"),
+                                                                                                  h4("Select Delivery Regions to Include"),uiOutput("l2_delivery_region")
+                                                                                           ))),value="lane_2_construct"),
+                                                   tabPanel("Lane 3 Constructor",fluidPage(fluidRow(column(12,plotOutput("l3_raw_plot"))),
+                                                                                           fluidRow(column(6,h4("Origin Parameters"),
+                                                                                                           h4("Select Origin Zips"), uiOutput("l3_orig_zip"),
+                                                                                                           h4("Select Origin States to Include"),uiOutput("l3_orig_state"),
+                                                                                                           h4("Select Load Regions to Include"),uiOutput("l3_load_region")
+                                                                                           ),
+                                                                                           column(6,h4("Destination Parameters"),
+                                                                                                  h4("Select Destination Zips"), uiOutput("l3_dest_zip"),
+                                                                                                  h4("Select Delivery States to Include"),uiOutput("l3_delivery_state"),
+                                                                                                  h4("Select Delivery Regions to Include"),uiOutput("l3_delivery_region")
+                                                                                           ))),value="lane_3_construct"),
                                                    tabPanel("All Lanes Raw Data",dataTableOutput("lanes"),value="all_lanes"),
                                                    tabPanel("API Data",uiOutput("raw_api"),uiOutput("API_choice"),dataTableOutput("raw_indicators"),value="api_data"),
                                                    tabPanel("Weekly Averages",dataTableOutput("weekly_averages"),value="weekly_avgs")

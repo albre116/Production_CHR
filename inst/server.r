@@ -772,48 +772,48 @@ shinyServer(function(input, output) { # server is defined within these parenthes
   })
   
   L1<-reactive({
-    a=FIL()$Origin_Zip %in% as.numeric(input$l1_orig_zip$right) & 
-      FIL()$Destination_Zip %in% as.numeric(input$l1_dest_zip$right)
-    b=FIL()$Lane %in% input$l1_lane_desc$right
-    c=FIL()$Orig_State %in% input$l1_orig_state$right
-    d=FIL()$Load_Region %in% input$l1_load_region$right
-    e=FIL()$Delivery_State %in% input$l1_delivery_state$right
-    f=FIL()$Delivery_Region %in% input$l1_delivery_region$right
-    g=FIL()$Stop_Count %in% as.numeric(input$l1_stop_ct$right)
+    a=FIL()$Origin_Zip %in% as.numeric(input$l1_orig_zip$right) 
+    b=FIL()$Destination_Zip %in% as.numeric(input$l1_dest_zip$right)
+    #c=FIL()$Lane %in% input$l1_lane_desc$right
+    d=FIL()$Orig_State %in% input$l1_orig_state$right
+    e=FIL()$Load_Region %in% input$l1_load_region$right
+    f=FIL()$Delivery_State %in% input$l1_delivery_state$right
+    g=FIL()$Delivery_Region %in% input$l1_delivery_region$right
+    h=FIL()$Stop_Count %in% as.numeric(input$l1_stop_ct$right)
     
-    LANE1<-FIL()[ (a | b | c | d | e | f) & g,]
+    LANE1<-FIL()[ ((a | d | e) & (b | f | g)) & h,]
     LANE1$Constructed_Lane<-input$lane1_id 
     LANE1
     
   })
   
   L2<-reactive({
-    a=FIL()$Origin_Zip %in% as.numeric(input$l2_orig_zip$right) & 
-      FIL()$Destination_Zip %in% as.numeric(input$l2_dest_zip$right)
-    b=FIL()$Lane %in% input$l2_lane_desc$right
-    c=FIL()$Orig_State %in% input$l2_orig_state$right
-    d=FIL()$Load_Region %in% input$l2_load_region$right
-    e=FIL()$Delivery_State %in% input$l2_delivery_state$right
-    f=FIL()$Delivery_Region %in% input$l2_delivery_region$right
-    g=FIL()$Stop_Count %in% as.numeric(input$l2_stop_ct$right)
+    a=FIL()$Origin_Zip %in% as.numeric(input$l2_orig_zip$right) 
+    b=FIL()$Destination_Zip %in% as.numeric(input$l2_dest_zip$right)
+    #c=FIL()$Lane %in% input$l2_lane_desc$right
+    d=FIL()$Orig_State %in% input$l2_orig_state$right
+    e=FIL()$Load_Region %in% input$l2_load_region$right
+    f=FIL()$Delivery_State %in% input$l2_delivery_state$right
+    g=FIL()$Delivery_Region %in% input$l2_delivery_region$right
+    h=FIL()$Stop_Count %in% as.numeric(input$l2_stop_ct$right)
     
-    LANE2<-FIL()[ (a | b | c | d | e | f) & g,]
+    LANE2<-FIL()[ ((a | d | e) & (b | f | g)) & h,]
     LANE2$Constructed_Lane<-input$lane2_id 
     LANE2
     
   })
   
   L3<-reactive({
-    a=FIL()$Origin_Zip %in% as.numeric(input$l3_orig_zip$right) & 
-      FIL()$Destination_Zip %in% as.numeric(input$l3_dest_zip$right)
-    b=FIL()$Lane %in% input$l3_lane_desc$right
-    c=FIL()$Orig_State %in% input$l3_orig_state$right
-    d=FIL()$Load_Region %in% input$l3_load_region$right
-    e=FIL()$Delivery_State %in% input$l3_delivery_state$right
-    f=FIL()$Delivery_Region %in% input$l3_delivery_region$right
-    g=FIL()$Stop_Count %in% as.numeric(input$l3_stop_ct$right)
+    a=FIL()$Origin_Zip %in% as.numeric(input$l3_orig_zip$right)
+    b=FIL()$Destination_Zip %in% as.numeric(input$l3_dest_zip$right)
+    #c=FIL()$Lane %in% input$l3_lane_desc$right
+    d=FIL()$Orig_State %in% input$l3_orig_state$right
+    e=FIL()$Load_Region %in% input$l3_load_region$right
+    f=FIL()$Delivery_State %in% input$l3_delivery_state$right
+    g=FIL()$Delivery_Region %in% input$l3_delivery_region$right
+    h=FIL()$Stop_Count %in% as.numeric(input$l3_stop_ct$right)
     
-    LANE3<-FIL()[ (a | b | c | d | e | f) & g,]
+    LANE3<-FIL()[ ((a | d | e) & (b | f | g)) & h,]
     LANE3$Constructed_Lane<-input$lane3_id 
     LANE3
     
