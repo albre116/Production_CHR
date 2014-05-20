@@ -581,29 +581,32 @@ shinyServer(function(input, output) { # server is defined within these parenthes
   
   READ_APICSV <- reactive({
     inFile <- input$api_file
-    if (is.null(inFile))
-      return(NULL)
-    api_readtable<-read.csv(inFile$datapath, header=input$header, sep=input$sep, quote=input$quote, na.strings=c("n/a","XXX"),nrows=-1)
-    
-    #api_readtable <- read.csv(header = TRUE, file = "census_api.csv",sep=",")
-    apicolnames <- colnames(api_readtable)
-    api_readtable <- data.frame(rbind(toupper(colnames(api_readtable)),as.matrix(api_readtable)))
-    colnames(api_readtable) <- apicolnames
-    return(structure(list("api_readtable" = api_readtable, "apicolnames" = apicolnames)))
+    if (is.null(inFile)){
+      if(file.exists("census_api.csv")){
+        api_readtable<-read.csv(header = TRUE, file = "census_api.csv",sep=",")
+        apicolnames <- colnames(api_readtable)
+        path=NULL
+      }else{return(NULL)}
+    }else{
+      api_readtable<-read.csv(inFile$datapath, header=input$header, sep=input$sep, quote=input$quote, na.strings=c("n/a","XXX"),nrows=-1)
+      apicolnames <- colnames(api_readtable)
+      path=inFile$datapath
+    }
+    return(structure(list("api_readtable" = api_readtable, "apicolnames" = apicolnames,"path"=path)))
   })
   
   
   API_Update<-reactive({
-    if(input$refresh==0 & file.exists("census_api.csv")){
+    if(input$refresh==0){
       api_readtable <- READ_APICSV()[["api_readtable"]]
-      
     }
     else{
       isolate({
-        
         api_readtable <- data.frame(input$api_names)
+        api_readtable<-api_readtable[2:nrow(api_readtable),]
         colnames(api_readtable) <- READ_APICSV()[["apicolnames"]]
-        write.csv(api_readtable[2:nrow(api_readtable),], file = "census_api.csv", row.names = FALSE)
+        if(!is.null(READ_APICSV()[["path"]])){write.csv(api_readtable, file = READ_APICSV()[["path"]], row.names = FALSE)}
+        write.csv(api_readtable,row.names=FALSE)
         
       })}
     return(api_readtable)
@@ -613,13 +616,21 @@ shinyServer(function(input, output) { # server is defined within these parenthes
   
   API<-reactive({
     CHR<-FINAL()
+    if(is.null(READ_APICSV())){return(NULL)}
+    api_readtable<-READ_APICSV()[["api_readtable"]]
+    
     if(input$refresh==0 & file.exists("api_last_run.RData")){
       load("api_last_run.RData")
-      if(START==format(min(CHR$Date),format="%Y-%m-%d") & END==format(Sys.time(),format="%Y-%m-%d")){
       return(list(DATA_I=DATA_I,DATA_FILL_I=DATA_FILL_I))}
-    }
     
-    Json_fuel<-EPA_API(series="PET.EMD_EPD2D_PTE_NUS_DPG.W",key="A9BCC61DA44BA0C0ECA4A42D622D7D44")
+    fuel_choice<-c("PET.EMD_EPD2D_PTE_NUS_DPG.W","PET.EMD_EPD2D_PTE_R10_DPG.W","PET.EMD_EPD2D_PTE_R1X_DPG.W",
+                   "PET.EMD_EPD2D_PTE_R1Y_DPG.W","PET.EMD_EPD2D_PTE_R1Z_DPG.W","PET.EMD_EPD2D_PTE_R20_DPG.W",
+                   "PET.EMD_EPD2D_PTE_R30_DPG.W","PET.EMD_EPD2D_PTE_R40_DPG.W","PET.EMD_EPD2D_PTE_R50_DPG.W ",
+                   "PET.EMD_EPD2D_PTE_R5XCA_DPG.W","PET.EMD_EPD2D_PTE_SCA_DPG.W")
+    FUEL_DATA<-vector("list",length(fuel_choice))
+    fuel_names<-character(length(fuel_choice))
+    for (beta in 1:length(fuel_choice)){
+    Json_fuel<-EPA_API(series=fuel_choice[beta],key="A9BCC61DA44BA0C0ECA4A42D622D7D44")
     date<-c()
     fuel<-c()
     for (i in 1:length(Json_fuel$series[[1]][[15]])){
@@ -627,13 +638,22 @@ shinyServer(function(input, output) { # server is defined within these parenthes
       fuel<-c(fuel,Json_fuel$series[[1]][[15]][[i]][[2]])
     }
     FUEL<-data.frame(Date=as.Date(date,format="%Y%m%d"),X=as.numeric(fuel))
-    colnames(FUEL)[2]<-Json_fuel$series[[1]][[2]]
-    series<-read.csv("census_api.csv")
+    if (beta>=2){
+      indx<-FUEL_DATA[[1]][,1] %in% FUEL[,1] 
+      FUEL[,2]<-FUEL[,2]-FUEL_DATA[[1]][indx,2]
+      colnames(FUEL)[2]<-paste("Diff_from_us_avg",Json_fuel$series[[1]][[2]],sep="_")
+    }
+    if (beta==1){colnames(FUEL)[2]<-Json_fuel$series[[1]][[2]]}
+    FUEL_DATA[[beta]]<-FUEL
+    }
+    
+    series<-api_readtable
     CENSUS<-CENSUS_API(series=series,key="cf2bc020b12d020f8ee3155f74198a21dc585845")
-    out<-vector("list",length(CENSUS)+1)##add in a slot for fuel data
-    out[[1]]<-FUEL
+    fuel_length<-length(FUEL_DATA)
+    out<-vector("list",length(CENSUS)+fuel_length)##add in a slots for fuel data
+    out[1:fuel_length]<-FUEL_DATA
     names(out)<-NA
-    names(out)[1]<-"FUEL"
+    names(out)[1:length(FUEL_DATA)]<-fuel_choice
     i=1
     for (i in 1:length(CENSUS)){
       rows<-length(CENSUS[[i]])
@@ -654,8 +674,8 @@ shinyServer(function(input, output) { # server is defined within these parenthes
         }
       tp<-data.frame(Date=date,X=data)
       colnames(tp)[2]<-name
-      out[[i+1]]<-tp
-      names(out)[i+1]<-paste(CENSUS[[i]][[2]][2:3],collapse="_")
+      out[[i+fuel_length]]<-tp
+      names(out)[i+fuel_length]<-paste(CENSUS[[i]][[2]][2:3],collapse="_")
     }
     Indicators<-out
     
@@ -1278,7 +1298,7 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     tmpcmd=paste("GAM_predictions=data.frame(time_ahead,",char,"=predicted_adj,lcl,ucl,FUTURE)",sep="")
     eval(parse(text=tmpcmd))
     GAM_predictions
-    write.csv(GAM_predictions,file=paste(TARGET_NAME,"GAM Predictions.csv"))
+    #write.csv(GAM_predictions,file=paste(TARGET_NAME,"GAM Predictions.csv"))
     
     ########################add in daily interploation ##########################
     
@@ -1354,7 +1374,7 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     Conditional_effects<-data.frame(Conditional_effects,"Sum of Effects"=apply(Conditional_effects,1,sum))
     Conditional_effects<-data.frame("For the Week Starting"=time_ahead,Conditional_effects)
     Conditional_effects
-    write.csv(Conditional_effects,file=paste(TARGET_NAME,"GAM Effects.csv"))
+    #write.csv(Conditional_effects,file=paste(TARGET_NAME,"GAM Effects.csv"))
     
     #########################################################################
     ###used to be mod_source.r
@@ -1596,7 +1616,7 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     percent_error<-mean(percent_error[[1]])
     
     
-    write.csv(output_backcast,file=paste(TARGET_NAME,backcast_ahead," Weeks_Ahead_Backcasting.csv")) 
+    #write.csv(output_backcast,file=paste(TARGET_NAME,backcast_ahead," Weeks_Ahead_Backcasting.csv")) 
     ########end backcasting source
     
     
@@ -1619,7 +1639,7 @@ shinyServer(function(input, output) { # server is defined within these parenthes
 
 output$raw_api <- renderUI({
   api_readtable <- API_Update()
-  
+  api_readtable<-data.frame(rbind(toupper(colnames(api_readtable)),as.matrix(api_readtable)))
   matrixCustom('api_names', 'API Indicators to Read',api_readtable)
   ###you can access these values with input$api_names as the variable anywhere in the server side file
   
@@ -1912,8 +1932,7 @@ output$preds<- renderChart({
     print(theGraph)
     
 #     p1 <- rPlot(values~time|ind, data = PLOT[which(PLOT$group %in% item),], type = "point")
-#     
-#     browser()
+
   })
   
   
