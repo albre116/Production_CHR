@@ -102,6 +102,8 @@ shinyUI(fluidPage(
                                conditionalPanel(condition = "input.navbar1=='panel4' && input.navbar14=='preds'", uiOutput("CI_percentile")),
                                conditionalPanel(condition = "input.navbar1=='panel4' && input.navbar14=='pred_fwd' | input.navbar14=='preds'", uiOutput("matrix_values")),
                                conditionalPanel(condition = "input.navbar1=='panel4' && input.navbar14=='gam_pred'", downloadButton("predictions_GAM","Download GAM Predictions (CSV)")),
+                               conditionalPanel(condition = "input.navbar1=='panel4' && input.navbar14=='vol_quote'", uiOutput("quote_date")),
+                               conditionalPanel(condition = "input.navbar1=='panel4' && input.navbar14=='vol_quote'", uiOutput("volume_checkgroup")),
                                conditionalPanel(condition = "input.navbar1=='panel4' && input.navbar14=='bcst_pred'", uiOutput("backcast_length_slider"))
                   )),
            column(9,navbarPage(title = "Analysis Evaluation",id = "navbar1",
@@ -183,6 +185,7 @@ shinyUI(fluidPage(
                                         navbarPage(title = "", id = "navbar14",
                                                    tabPanel("Predictor Values", plotOutput("pred_fwd"), value="pred_fwd"),
                                                    tabPanel("Model Predictions", showOutput("preds","highcharts"), value = "preds"),
+                                                   tabPanel("Integrated Volume Quote",showOutput("quote_value","highcharts"),dataTableOutput("vol_quote") , value = "vol_quote"),
                                                    tabPanel("Table of Predictions", dataTableOutput("GAM_predictions"), value = "gam_pred"),
                                                    tabPanel("Backcasting Predictions", showOutput("Backcast_graph","highcharts"), value = "bcst_pred")
                                         )

@@ -527,6 +527,22 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     )
   })
   
+  
+  output$volume_checkgroup <- renderUI({
+    x <-data.frame(LANE_BUNDLE()[['DATA_FILL']])
+    date <-x$Align_date
+    date_cols<-grep("date",colnames(x))
+    x<-x[,-date_cols]
+    colnames(x)<-gsub("_data","",colnames(x))
+    choice<-colnames(x)
+    choice<-choice[grep("volume",choice)]
+    sel<-1
+    checkboxGroupInput(inputId = "volume",
+                       label = "Select Prediction Lane Volume",
+                       choices = choice, selected=choice[sel]
+    )
+  })
+  
   output$response_radio <- renderUI({
     x <-data.frame(LANE_BUNDLE()[['DATA_FILL']])
     date <-x$Align_date
@@ -563,6 +579,15 @@ shinyServer(function(input, output) { # server is defined within these parenthes
                 value = 95,
                 step = 1                
     )
+  })
+  
+  output$quote_date<-renderUI({
+    smooth_vals<-mod()[["smooth_data"]]
+    datevect <- smooth_vals[[1]]
+    a=min(datevect)
+    b=max(datevect)
+    dateRangeInput("quote_date", "Date Cutoff Ranges for Integrated Quote:", 
+                   start =a, end =b )
   })
   
   #################################################################################################################################
@@ -1305,7 +1330,6 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     smooth_data<-data.frame(date=c(dateZZ,GAM_predictions[[1]]),values=c(ZZ[[response]],GAM_predictions[[2]]),
                             LCL=c(rep(NA,nrow(ZZ)),GAM_predictions[[3]]),UCL=c(rep(NA,nrow(ZZ)),GAM_predictions[[4]]),
                             group=c(rep("observed",length(dateZZ)),rep("predicted",length(GAM_predictions[[1]]))))
-    
     min<-as.POSIXlt(min(smooth_data[[1]]),origin="1970-01-01")
     max<-as.POSIXlt(max(smooth_data[[1]]),origin="1970-01-01")+3.5*24*60*60
     series<-min+(0:difftime(max,min,units="days"))*24*60*60
@@ -1328,22 +1352,9 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     smooth_data[[5]][1:transition]<-"observed"
     smooth_data[[5]][(transition+1):nrow(smooth_data)]<-"predicted"
     input_dat<-list(date=smooth_data[,1],data=smooth_data[,2,drop=F])
-    ###consider piece wise linear fit versus loess
-#     non_empty<-which(!is.na(input$data))
-#     for (g in 2:length(non_empty)){###piecewise linear fit
-#       ff<-(non_empty[g-1]+1):(non_empty[g]-1)
-#       dat<-data.frame(y=input$data[non_empty[(g-1):g],1],x=input$date[non_empty[(g-1):g]])
-#       qf<-lm(y~x,data=dat)
-#       input$data[ff,1]<-predict(qf,newdata=data.frame(x=input$date[ff]))
-#     }
-#     input$data[1:(non_empty[1]-1),1]<-input$data[non_empty[1],1]
-    ####if loess fit desired use this code
     ttmmpp<-PIECE_fill(input_dat,t_index=1)
     smooth_data[2]<-ttmmpp[[2]]
-    ######
-    
-    
-    #smooth_data[2]<-input$data[,1]
+
     
     
     work<-smooth_data[[5]]=="predicted"
@@ -1393,7 +1404,100 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     
   })  
   
+  vol_integrator<-reactive({
+    TARGET_NAME=LANE_BUNDLE()[['TARGET_NAME']]
+    pt_data=mod1()[['pt_data']]
+    response=mod1()[['response']]
+    names=mod1()[['names']]
+    fixed=mod1()[['fixed']]
+    pull_future=mod1()[['pull_future']]
+    fit_1=mod1()[['fit_1']]
+    ymin=mod1()[['ymin']]
+    ymax=mod1()[['ymax']]
+    x=mod1()[['x']]
+    run=mod1()[['run']]
+    date=mod1()[['date']]
+    pull_time_ahead=mod1()[['pull_time_ahead']]
+    tmp_dat=mod1()[['tmp_dat']]
+    ZZ=mod1()[['ZZ']]
+    dateZZ=mod1()[['dateZZ']]
+    time_ahead=mod1()[['time_ahead']]
+    datexx=mod1()[['datexx']]
+    backcast_ahead=mod1()[['backcast_ahead']]
+    FUTURE=mod1()[['FUTURE']]
+    XX=mod1()[['XX']]
+    error.stream=mod1()[['error.stream']]
+    lead_lag_store=mod1()[['lead_lag_store']]
+    consider=mod1()[['consider']]
+    interaction=mod1()[['interaction']]
+    gamma=mod1()[['gamma']]
   
+    
+    ####identify volume lane
+    vol_idx<-which(colnames(x) %in% input$volume)
+    
+    ####predict future lane volume
+    method_pred="Loess" ###set prediciton method between gam and loess
+    if (method_pred=="Loess"){
+      LM<-linear_detrend(XX[vol_idx],datexx)
+      X_linear<-detrend_linear(XX[vol_idx],LM)
+      LOESS<-loess_detrend(X_linear,datexx,folds=5,span=1:10/10)
+      X_loess<-detrend_loess(X_linear,LOESS)
+      Z<-X_loess
+      FUTURE<-mean_future(time_ahead,Z,LM,LOESS)} else{
+        FUTURE<-mean_future_GAM(time_ahead,datexx,XX[vol_idx],gamma)  
+      }
+    
+    plot_dat<-rbind(XX[vol_idx],FUTURE)
+    plot_time<-c(datexx,time_ahead)
+    plot_group<-rep("Predicted",length(plot_time))
+    plot_group[1:length(datexx)]="Observed"
+    plot_group<-rep(plot_group,length(ls(FUTURE)))
+    plot_time<-rep(plot_time,length(ls(FUTURE)))
+    tmp_dat<-stack(plot_dat)
+    tmp_dat<-cbind(tmp_dat,plot_time,plot_group)
+    
+    
+    for (b in 1:ncol(FUTURE)){
+      maxx<-max(x[vol_idx])
+      minx<-min(x[vol_idx])
+      FUTURE[which(FUTURE[,b]>=maxx),b]=maxx
+      FUTURE[which(FUTURE[,b]<=minx),b]=minx
+    }
+    pull_future<-FUTURE
+    pull_time_ahead<-time_ahead
+    
+    
+    
+
+    #####daily smoothing of lane volume####
+    smooth_data<-data.frame(date=c(dateZZ,pull_time_ahead),values=c(ZZ[[vol_idx]],FUTURE[[1]]),
+                            group=c(rep("observed",length(dateZZ)),rep("predicted",length(FUTURE[[1]]))))
+    min<-as.POSIXlt(min(smooth_data[[1]]),origin="1970-01-01")
+    max<-as.POSIXlt(max(smooth_data[[1]]),origin="1970-01-01")+3.5*24*60*60
+    series<-min+(0:difftime(max,min,units="days"))*24*60*60
+    series<-as.Date(series,format="%Y-%m-%d")
+    obs_dates<-as.Date(as.POSIXlt(smooth_data[[1]],origin="1970-01-01")+ c(diff(smooth_data[[1]])/2,3.5)*24*60*60,format="%Y-%m-%d")
+    smooth_values<-numeric(length(series))
+    smooth_values[1:length(smooth_values)]<-NA
+    smooth_values[series %in% obs_dates]<-smooth_data[[2]]
+    smooth_group<-factor(rep(NA,length(series)),levels=levels(smooth_data[[3]]))
+    smooth_group[series %in% obs_dates]<-smooth_data[[3]]
+    
+    smooth_data<-data.frame(date=series,values=smooth_values,group=smooth_group)
+    transition<-floor(mean(c(max(which(smooth_data[[3]]=="observed")),min(which(smooth_data[[3]]=="predicted")))))
+    smooth_data[[3]][1:transition]<-"observed"
+    smooth_data[[3]][(transition+1):nrow(smooth_data)]<-"predicted"
+    input_dat<-list(date=smooth_data[,1],data=smooth_data[,2,drop=F])
+    ttmmpp<-PIECE_fill(input_dat,t_index=1)
+    smooth_data[2]<-ttmmpp[[2]]
+    
+    return(smooth_data)
+    
+  })  
+
+
+
   # prep data once and then pass around the program bundle 5 drop in
   
   mod2 <- reactive({
@@ -1478,15 +1582,6 @@ shinyServer(function(input, output) { # server is defined within these parenthes
       #par(op)
       ymin<-min(min(predict(fit_1)),min(x[[response]]))
       ymax<-max(max(predict(fit_1)),max(x[[response]]))
-      #plot(predict(fit_1)~date,pch=16,ylim=c(ymin,ymax),ylab=colnames(x)[response])
-      #lines(x[[response]]~date)
-      #lines(predict(fit_1)~date,lty=2)
-      #title("fitted versus observed")
-      #legend(x="topleft",legend=c("fitted","observed"),
-      #       lty=c(2,1),lwd=c(0,1),pch=c(16,NA))
-      
-      
-      
       date_b<-datexx
       
       
@@ -1522,20 +1617,6 @@ shinyServer(function(input, output) { # server is defined within these parenthes
       reference_ahead<-reference[2:(backcast_ahead+1)]
       time_ahead<-as.Date(as.POSIXct(reference_ahead,origin="1970-01-01")+week_ahead*7*24*60*60,format="%Y-%m-%d")
       
-      
-      
-      #year_ahead<-as.numeric(format(date_b[length(date_b)],"%Y"))
-      #reference_ahead<-as.Date(strptime(paste(year_ahead,"01","01",sep="-"),"%Y-%m-%d"),format="%Y-%m-%d")
-      #week_ahead<-as.double(floor(difftime(date_b[length(date_b)],reference_ahead,units="weeks")))
-      #week_ahead[which(week_ahead==52)]=51 ##cut off last couple of days in year and group with last week
-      #time_ahead<-as.POSIXct(reference_ahead,origin="1970-01-01") + ((week_ahead)+1:backcast_ahead)*7*24*60*60
-      #time_ahead<-as.Date(time_ahead,format="%Y-%m-%d")
-      #week_select<-rep(0:51,2*ceiling(backcast_ahead/51))
-      #time_ahead<-(week_ahead)+1:backcast_ahead
-      #week_ahead<-week_select[time_ahead+1]
-      #year_fwd<-(time_ahead) %/% 52
-      #reference_ahead<-strptime(paste(year_ahead+year_fwd,"01","01",sep="-"),"%Y-%m-%d")
-      #time_ahead<-as.POSIXct(reference_ahead)+week_ahead*7*24*60*60
       y=colnames(XX[run[-1]])
       FUTURE<-data.frame(matrix(nrow=length(time_ahead),ncol=length(y)))
       colnames(FUTURE)<-y
@@ -1889,6 +1970,35 @@ output$preds<- renderChart({
   return(theGraph)
   
 }) 
+
+output$quote_value<- renderChart({
+  smooth_vals<-mod()[["smooth_data"]]
+  vol_vals<-vol_integrator()
+  datevect <- smooth_vals[[1]]
+  idx<-datevect>=input$quote_date[1] & datevect<=input$quote_date[2]
+
+  
+  datatrans <- matrix(NA,nrow=length(which(idx)),ncol = 2)
+  datatrans[,1] <- smooth_vals[[2]][idx]
+  datatrans[,2] <- vol_vals[[2]][idx]
+  datevect <- smooth_vals[[1]][idx]
+  datatrans <- data.frame(datevect,datatrans)
+  
+
+  colnames(datatrans) <- c("date","Rate_prediction","Volume_prediction")
+  datatrans <- reshape2::melt(datatrans,id= 'date', na.rm = TRUE)
+  datatrans[,1] <- as.numeric(as.POSIXct((as.numeric(datatrans[,1])*1000*24*60*60), origin = "1970-01-01"))
+  theGraph <- hPlot(value ~ date, group = 'variable', data = datatrans, type = 'line')
+  theGraph$chart(zoomType = "x")
+  theGraph$xAxis(type = 'datetime', labels = list(format = '{value:%Y-%m-%d}'), title = list(text = "Date"))
+  theGraph$addParams(dom = 'quote_value')
+  theGraph$yAxis(title = list(text ='predicted value in range'))
+  
+  return(theGraph)
+  
+}) 
+
+
   output$GAM_effects<-renderDataTable({
     tmp<-mod()[["Conditional_effects"]]
     #tmp$time_ahead<-format(as.POSIXct(tmp$time_ahead,origin="1970-01-01"),format="%m/%d/%Y")
@@ -1909,8 +2019,16 @@ output$preds<- renderChart({
     tmp[idx,]
     
   })
+
+
+output$vol_quote<-renderDataTable({
+  volume<-vol_integrator()
+  rate<-mod()[["smooth_data"]]
+  data.frame(rate,volume)
+})
   
-  
+
+
   output$predictions_GAM <- downloadHandler(
     filename = c('predictions.csv'),
     content = function(file) {
@@ -1991,5 +2109,6 @@ output$preds<- renderChart({
     
     
   })
+
   
 })    
