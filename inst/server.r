@@ -1978,19 +1978,25 @@ output$quote_value<- renderChart({
   idx<-datevect>=input$quote_date[1] & datevect<=input$quote_date[2]
 
   
-  datatrans <- matrix(NA,nrow=length(which(idx)),ncol = 2)
-  datatrans[,1] <- smooth_vals[[2]][idx]
-  datatrans[,2] <- vol_vals[[2]][idx]
-  datevect <- smooth_vals[[1]][idx]
+  datatrans <- matrix(NA,nrow=nrow(smooth_vals),ncol = 2)
+  datatrans[,1] <- smooth_vals[[2]]
+  datatrans[,2] <- vol_vals[[2]]
+  datevect <- smooth_vals[[1]]
   datatrans <- data.frame(datevect,datatrans)
   
-
+  rpm <- smooth_vals[[2]][idx]
+  volume <- vol_vals[[2]][idx]
+  quote<-round(sum(rpm*volume,na.rm=T)/sum(volume,na.rm=T),2)
+  
   colnames(datatrans) <- c("date","Rate_prediction","Volume_prediction")
   datatrans <- reshape2::melt(datatrans,id= 'date', na.rm = TRUE)
   datatrans[,1] <- as.numeric(as.POSIXct((as.numeric(datatrans[,1])*1000*24*60*60), origin = "1970-01-01"))
-  theGraph <- hPlot(value ~ date, group = 'variable', data = datatrans, type = 'line')
+  theGraph <- hPlot(value ~ date, group = 'variable', data = datatrans, type = 'line',title = paste("Volume Weighted Quote:$",quote,sep=""))
   theGraph$chart(zoomType = "x")
-  theGraph$xAxis(type = 'datetime', labels = list(format = '{value:%Y-%m-%d}'), title = list(text = "Date"))
+  min_band<-as.numeric(as.POSIXct((as.numeric(input$quote_date[1])*1000*24*60*60), origin = "1970-01-01"))
+  max_band<-as.numeric(as.POSIXct((as.numeric(input$quote_date[2])*1000*24*60*60), origin = "1970-01-01"))
+  theGraph$xAxis(type = 'datetime', labels = list(format = '{value:%Y-%m-%d}'), title = list(text = "Date"),
+                 plotBands = list(color='orange',from=min_band,to=max_band))
   theGraph$addParams(dom = 'quote_value')
   theGraph$yAxis(title = list(text ='predicted value in range'))
   
