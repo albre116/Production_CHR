@@ -646,7 +646,9 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     
     if(input$refresh==0 & file.exists("api_last_run.RData")){
       load("api_last_run.RData")
-      return(list(DATA_I=DATA_I,DATA_FILL_I=DATA_FILL_I))}
+      if(START==format(min(CHR$Date),format="%Y-%m-%d") & END==format(Sys.time(),format="%Y-%m-%d"))
+        {return(list(DATA_I=DATA_I,DATA_FILL_I=DATA_FILL_I))}
+    }
     
     fuel_choice<-c("PET.EMD_EPD2D_PTE_NUS_DPG.W","PET.EMD_EPD2D_PTE_R10_DPG.W","PET.EMD_EPD2D_PTE_R1X_DPG.W",
                    "PET.EMD_EPD2D_PTE_R1Y_DPG.W","PET.EMD_EPD2D_PTE_R1Z_DPG.W","PET.EMD_EPD2D_PTE_R20_DPG.W",
@@ -1976,29 +1978,31 @@ output$quote_value<- renderChart({
   vol_vals<-vol_integrator()
   datevect <- smooth_vals[[1]]
   idx<-datevect>=input$quote_date[1] & datevect<=input$quote_date[2]
+  idxx<-smooth_vals[[5]]=="observed"
 
-  
-  datatrans <- matrix(NA,nrow=nrow(smooth_vals),ncol = 2)
-  datatrans[,1] <- smooth_vals[[2]]
-  datatrans[,2] <- vol_vals[[2]]
+  datatrans <- matrix(NA,nrow=nrow(smooth_vals),ncol = 4)
+  datatrans[idxx,1] <- smooth_vals[[2]][idxx]
+  datatrans[idxx,2] <- vol_vals[[2]][idxx]
+  datatrans[!idxx,3] <- smooth_vals[[2]][!idxx]
+  datatrans[!idxx,4] <- vol_vals[[2]][!idxx]
   datevect <- smooth_vals[[1]]
   datatrans <- data.frame(datevect,datatrans)
-  
   rpm <- smooth_vals[[2]][idx]
   volume <- vol_vals[[2]][idx]
   quote<-round(sum(rpm*volume,na.rm=T)/sum(volume,na.rm=T),2)
-  
-  colnames(datatrans) <- c("date","Rate_prediction","Volume_prediction")
+  colnames(datatrans) <- c("date","Rate_observed","Volume_observed","Rate_predicted","Volume_predicted")
   datatrans <- reshape2::melt(datatrans,id= 'date', na.rm = TRUE)
   datatrans[,1] <- as.numeric(as.POSIXct((as.numeric(datatrans[,1])*1000*24*60*60), origin = "1970-01-01"))
-  theGraph <- hPlot(value ~ date, group = 'variable', data = datatrans, type = 'line',title = paste("Volume Weighted Quote:$",quote,sep=""))
+  theGraph <- hPlot_2axis(value ~ date, group = 'variable', data = datatrans, type = 'line',axis_value=c(1,1,1,1),title = paste("Volume Weighted Quote:$",quote,sep=""))
   theGraph$chart(zoomType = "x")
   min_band<-as.numeric(as.POSIXct((as.numeric(input$quote_date[1])*1000*24*60*60), origin = "1970-01-01"))
   max_band<-as.numeric(as.POSIXct((as.numeric(input$quote_date[2])*1000*24*60*60), origin = "1970-01-01"))
   theGraph$xAxis(type = 'datetime', labels = list(format = '{value:%Y-%m-%d}'), title = list(text = "Date"),
-                 plotBands = list(color='orange',from=min_band,to=max_band))
+                 plotBands = list(color='rgba(68, 170, 213, 0.2)',from=min_band,to=max_band))
   theGraph$addParams(dom = 'quote_value')
-  theGraph$yAxis(title = list(text ='predicted value in range'))
+  theGraph$yAxis(list(title = list(text = 'Rainfall')), list(title = list(text = 'Temperature'), opposite = TRUE))
+
+           
   
   return(theGraph)
   
