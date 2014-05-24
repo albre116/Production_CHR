@@ -2002,7 +2002,6 @@ output$quote_value<- renderChart({
                  plotBands = list(color='rgba(68, 170, 213, 0.2)',from=min_band,to=max_band))
   theGraph$yAxis(title = list(text = "Rate Per Mile"),labels = list(format = '${value}'))
   theGraph$addParams(dom = 'quote_value')
-    
   return(theGraph)
   
 }) 
@@ -2036,7 +2035,6 @@ output$quote_volume<- renderChart({
                  plotBands = list(color='rgba(68, 170, 213, 0.2)',from=min_band,to=max_band))
   theGraph$yAxis(title = list(text = "Volume"))
   theGraph$addParams(dom = 'quote_volume')
-    
   return(theGraph)
   
 }) 
