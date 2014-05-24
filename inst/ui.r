@@ -185,7 +185,7 @@ shinyUI(fluidPage(
                                         navbarPage(title = "", id = "navbar14",
                                                    tabPanel("Predictor Values", plotOutput("pred_fwd"), value="pred_fwd"),
                                                    tabPanel("Model Predictions", showOutput("preds","highcharts"), value = "preds"),
-                                                   tabPanel("Integrated Volume Quote",showOutput("quote_value","highcharts"),dataTableOutput("vol_quote") , value = "vol_quote"),
+                                                   tabPanel("Integrated Volume Quote",showOutput("quote_value","highcharts"),showOutput("quote_volume","highcharts"),dataTableOutput("vol_quote") , value = "vol_quote"),
                                                    tabPanel("Table of Predictions", dataTableOutput("GAM_predictions"), value = "gam_pred"),
                                                    tabPanel("Backcasting Predictions", showOutput("Backcast_graph","highcharts"), value = "bcst_pred")
                                         )
