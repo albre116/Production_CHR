@@ -104,7 +104,8 @@ shinyUI(fluidPage(
                                conditionalPanel(condition = "input.navbar1=='panel4' && input.navbar14=='gam_pred'", downloadButton("predictions_GAM","Download GAM Predictions (CSV)")),
                                conditionalPanel(condition = "input.navbar1=='panel4' && input.navbar14=='vol_quote'", uiOutput("quote_date")),
                                conditionalPanel(condition = "input.navbar1=='panel4' && input.navbar14=='vol_quote'", uiOutput("volume_checkgroup")),
-                               conditionalPanel(condition = "input.navbar1=='panel4' && input.navbar14=='bcst_pred'", uiOutput("backcast_length_slider"))
+                               conditionalPanel(condition = "input.navbar1=='panel4' && input.navbar14=='bcst_pred'", uiOutput("backcast_length_slider")),
+                               conditionalPanel(condition = "input.navbar1=='panel4' && input.navbar14=='vol_quote'", uiOutput("matrix_volume"))
                   )),
            column(9,navbarPage(title = "Analysis Evaluation",id = "navbar1",
                                tabPanel("Dataset Selection", value = "panel1",
@@ -185,7 +186,9 @@ shinyUI(fluidPage(
                                         navbarPage(title = "", id = "navbar14",
                                                    tabPanel("Predictor Values", plotOutput("pred_fwd"), value="pred_fwd"),
                                                    tabPanel("Model Predictions", showOutput("preds","highcharts"), value = "preds"),
-                                                   tabPanel("Integrated Volume Quote",showOutput("quote_value","highcharts"),showOutput("quote_volume","highcharts"),dataTableOutput("vol_quote") , value = "vol_quote"),
+                                                   tabPanel("Integrated Volume Quote",fluidPage(fluidRow(column(6,showOutput("quote_value","highcharts")),
+                                                                                                         column(6,showOutput("quote_volume","highcharts"))),
+                                                                                                fluidRow(dataTableOutput("vol_quote"))),value = "vol_quote"),
                                                    tabPanel("Table of Predictions", dataTableOutput("GAM_predictions"), value = "gam_pred"),
                                                    tabPanel("Backcasting Predictions", showOutput("Backcast_graph","highcharts"), value = "bcst_pred")
                                         )

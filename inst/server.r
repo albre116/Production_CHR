@@ -590,6 +590,24 @@ shinyServer(function(input, output) { # server is defined within these parenthes
                    start =a, end =b )
   })
   
+  
+  output$matrix_volume <- renderUI({
+    smooth_vals<-mod()[["smooth_data"]]
+    vol_vals<-vol_integrator()
+    datevect <- smooth_vals[[1]]
+    idx<-datevect>=input$quote_date[1] & datevect<=input$quote_date[2]
+    idxx<-smooth_vals[[5]]=="observed"
+    datatrans <- matrix(NA,nrow=nrow(smooth_vals),ncol = 2)
+    #datatrans[idxx,1] <- smooth_vals[[2]][idxx]
+    datatrans[idxx,1] <- vol_vals[[2]][idxx]
+    #datatrans[!idxx,3] <- smooth_vals[[2]][!idxx]
+    datatrans[!idxx,2] <- vol_vals[[2]][!idxx]
+    matrix_preds<-data.frame("Date"=datevect[!idxx],"Volume"=datatrans[!idxx,2])
+    matrixCustom('matrix_volume', 'Future Volume Values Needed For Quote Construction',matrix_preds)
+    ###you can access these values with input$matrix_volume as the variable anywhere in the server side file
+    
+  })
+  
   #################################################################################################################################
   #################################### Bundle 1 data processing insertion point#########
   ##################################################################################################################################
@@ -2006,6 +2024,8 @@ output$quote_value<- renderChart({
   
 }) 
 
+
+
 output$quote_volume<- renderChart({
   smooth_vals<-mod()[["smooth_data"]]
   vol_vals<-vol_integrator()
@@ -2018,7 +2038,8 @@ output$quote_volume<- renderChart({
   #datatrans[idxx,1] <- smooth_vals[[2]][idxx]
   datatrans[idxx,1] <- vol_vals[[2]][idxx]
   #datatrans[!idxx,3] <- smooth_vals[[2]][!idxx]
-  datatrans[!idxx,2] <- vol_vals[[2]][!idxx]
+  datatrans[!idxx,2]<-as.numeric(input$matrix_volume[,2])
+  #datatrans[!idxx,2] <- vol_vals[[2]][!idxx]
   datevect <- smooth_vals[[1]]
   datatrans <- data.frame(datevect,datatrans)
   rpm <- smooth_vals[[2]][idx]
