@@ -583,7 +583,8 @@ shinyServer(function(input, output) { # server is defined within these parenthes
   
   output$quote_date<-renderUI({
     smooth_vals<-mod()[["smooth_data"]]
-    datevect <- smooth_vals[[1]]
+    idxx<-smooth_vals[[5]]=="observed"
+    datevect <- smooth_vals[[1]][!idxx]
     a=min(datevect)
     b=max(datevect)
     dateRangeInput("quote_date", "Date Cutoff Ranges for Integrated Quote:", 
@@ -597,13 +598,13 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     datevect <- smooth_vals[[1]]
     idx<-datevect>=input$quote_date[1] & datevect<=input$quote_date[2]
     idxx<-smooth_vals[[5]]=="observed"
-    datatrans <- matrix(NA,nrow=nrow(smooth_vals),ncol = 2)
+    datatrans <- matrix(NA,nrow=nrow(smooth_vals),ncol = 3)
     #datatrans[idxx,1] <- smooth_vals[[2]][idxx]
     datatrans[idxx,1] <- vol_vals[[2]][idxx]
-    #datatrans[!idxx,3] <- smooth_vals[[2]][!idxx]
+    datatrans[!idxx,3] <- smooth_vals[[2]][!idxx]
     datatrans[!idxx,2] <- vol_vals[[2]][!idxx]
-    matrix_preds<-data.frame("Date"=datevect[!idxx],"Volume"=datatrans[!idxx,2])
-    matrixCustom('matrix_volume', 'Future Volume Values Needed For Quote Construction',matrix_preds)
+    matrix_preds<-data.frame("Date"=datevect[!idxx],"RPM"=round(datatrans[!idxx,3],2),"Volume"=round(datatrans[!idxx,2],2))
+    matrixCustom('matrix_volume', 'Future Values For Quote Construction',matrix_preds)
     ###you can access these values with input$matrix_volume as the variable anywhere in the server side file
     
   })
@@ -1991,6 +1992,33 @@ output$preds<- renderChart({
   
 }) 
 
+
+output$quote_final<-renderText({
+  smooth_vals<-mod()[["smooth_data"]]
+  vol_vals<-vol_integrator()
+  datevect <- smooth_vals[[1]]
+  idx<-datevect>=input$quote_date[1] & datevect<=input$quote_date[2]
+  idxx<-smooth_vals[[5]]=="observed"
+  
+  
+  datatrans <- matrix(NA,nrow=nrow(smooth_vals),ncol = 2)
+  datatrans[idxx,1] <- smooth_vals[[2]][idxx]
+  #datatrans[idxx,2] <- vol_vals[[2]][idxx]
+  datatrans[!idxx,2] <- as.numeric(input$matrix_volume[,2])
+  #datatrans[!idxx,4] <- vol_vals[[2]][!idxx]
+  datevect <- smooth_vals[[1]]
+  datatrans <- data.frame(datevect,datatrans)
+  rpm <- smooth_vals[[2]][idx]
+  volume <- vol_vals[[2]][idx]
+  quote<-round(sum(rpm*volume,na.rm=T)/sum(volume,na.rm=T),2)
+  
+  paste("Volume Integrated Quote for: ",input$quote_date[1]," - ",input$quote_date[2]," is $",quote,sep="")
+  
+  
+  
+})
+
+
 output$quote_value<- renderChart({
   smooth_vals<-mod()[["smooth_data"]]
   vol_vals<-vol_integrator()
@@ -2002,17 +2030,17 @@ output$quote_value<- renderChart({
   datatrans <- matrix(NA,nrow=nrow(smooth_vals),ncol = 2)
   datatrans[idxx,1] <- smooth_vals[[2]][idxx]
   #datatrans[idxx,2] <- vol_vals[[2]][idxx]
-  datatrans[!idxx,2] <- smooth_vals[[2]][!idxx]
+  datatrans[!idxx,2] <- as.numeric(input$matrix_volume[,2])
   #datatrans[!idxx,4] <- vol_vals[[2]][!idxx]
   datevect <- smooth_vals[[1]]
   datatrans <- data.frame(datevect,datatrans)
   rpm <- smooth_vals[[2]][idx]
   volume <- vol_vals[[2]][idx]
-  quote<-round(sum(rpm*volume,na.rm=T)/sum(volume,na.rm=T),2)
+  quote<-round(mean(rpm,na.rm=T),2)
   colnames(datatrans) <- c("date","Rate_observed","Rate_predicted")
   datatrans <- reshape2::melt(datatrans,id= 'date', na.rm = TRUE)
   datatrans[,1] <- as.numeric(as.POSIXct((as.numeric(datatrans[,1])*1000*24*60*60), origin = "1970-01-01"))
-  theGraph <- hPlot(value ~ date, group = 'variable', data = datatrans, type = 'line', title = paste("Volume Weighted Quote:$",quote,sep=""))
+  theGraph <- hPlot(value ~ date, group = 'variable', data = datatrans, type = 'line', title = paste("Average Rate Per Mile:$",quote,sep=""))
   theGraph$chart(zoomType = "x")
   min_band<-as.numeric(as.POSIXct((as.numeric(input$quote_date[1])*1000*24*60*60), origin = "1970-01-01"))
   max_band<-as.numeric(as.POSIXct((as.numeric(input$quote_date[2])*1000*24*60*60), origin = "1970-01-01"))
@@ -2038,7 +2066,7 @@ output$quote_volume<- renderChart({
   #datatrans[idxx,1] <- smooth_vals[[2]][idxx]
   datatrans[idxx,1] <- vol_vals[[2]][idxx]
   #datatrans[!idxx,3] <- smooth_vals[[2]][!idxx]
-  datatrans[!idxx,2]<-as.numeric(input$matrix_volume[,2])
+  datatrans[!idxx,2]<-as.numeric(input$matrix_volume[,3])
   #datatrans[!idxx,2] <- vol_vals[[2]][!idxx]
   datevect <- smooth_vals[[1]]
   datatrans <- data.frame(datevect,datatrans)
@@ -2054,7 +2082,7 @@ output$quote_volume<- renderChart({
   max_band<-as.numeric(as.POSIXct((as.numeric(input$quote_date[2])*1000*24*60*60), origin = "1970-01-01"))
   theGraph$xAxis(type = 'datetime', labels = list(format = '{value:%Y-%m-%d}'), title = list(text = "Date"),
                  plotBands = list(color='rgba(68, 170, 213, 0.2)',from=min_band,to=max_band))
-  theGraph$yAxis(title = list(text = "Volume"))
+  theGraph$yAxis(title = list(text = "Transactional Volume"))
   theGraph$addParams(dom = 'quote_volume')
   return(theGraph)
   
