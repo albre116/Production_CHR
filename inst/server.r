@@ -787,6 +787,9 @@ shinyServer(function(input, output, session) { # server is defined within these 
     updateCheckboxInput(session, inputId="seasonality", value = Read_Settings()[["seasonality"]])
     updateCheckboxInput(session, inputId="linear", value = Read_Settings()[["linear"]])
     
+    updateTextInput(session, inputId= "lane1_id", value = Read_Settings()[["lane1_id"]])
+    updateTextInput(session, inputId= "lane2_id", value = Read_Settings()[["lane2_id"]])
+    updateTextInput(session, inputId= "lane3_id", value = Read_Settings()[["lane3_id"]])
   })
   
   output$downloadData<-downloadHandler(
