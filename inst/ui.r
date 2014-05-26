@@ -34,6 +34,10 @@ shinyUI(fluidPage(
                                                 sliderInput("rand_samp","Random Sample of Data (%)",0,100,15,step=1),
                                                 selectInput("lanes_choice","Number of Lanes to Construct",c(1,2,3))
                                                 ),
+                               conditionalPanel(condition="input.navbar11=='data_load'",    
+                                                fileInput('settings_file', 'Load Previous Settings?',
+                                                          accept=c('RData'))
+                               ),
                                conditionalPanel(condition="input.navbar11=='api_data'",    
                                                 fileInput('api_file', 'Choose API CSV Data File',
                                                           accept=c('text/csv', 'text/comma-separated-values,text/plain', '.csv')),
@@ -84,6 +88,13 @@ shinyUI(fluidPage(
                                                 uiOutput("l3_stop_ct")
                                                 #h4("Select Lanes To Include"),
                                                 #uiOutput("l3_lane_desc")
+                               ),
+                               conditionalPanel(condition="input.navbar1=='panel4' && input.navbar14=='bcst_pred'",    
+                                                textInput("settings_name","Save Settings to File Name:",value="settings_name")
+                               ),
+                               conditionalPanel(condition="input.navbar1=='panel4' && input.navbar14=='bcst_pred'",
+                                                downloadButton('downloadData','Download')
+                                                
                                ),
                                conditionalPanel(condition = "input.navbar1=='panel2'", uiOutput("select_radio")),
                                conditionalPanel(condition = "input.navbar1=='panel3'|| input.navbar1=='panel4'", uiOutput("min_lead_slider")),

@@ -7,7 +7,7 @@ options(shiny.maxRequestSize=500*1024^2)###500 megabyte file upload limit set
 
 
 #################################
-shinyServer(function(input, output) { # server is defined within these parentheses
+shinyServer(function(input, output, session) { # server is defined within these parentheses
   
   
   # render UI input elements for use in UI wrapper - come back to this section to calculate length dynamically
@@ -22,9 +22,12 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     for (i in 1:length(dest)){
       cc[i]=colnames(DATA_I[[dest[i]]])
     }
+    selectedcc <- cc
+    if (!is.null(Read_Settings())){
+      selectedcc <- cc[which(cc%in%Read_Settings()[["API_choice"]])]}
     data.frame(Abbreviations=dest,Full_Names=cc)
     checkboxGroupInput("API_choice", "Choose Economic Indicators",
-                       cc,selected=cc)
+                       cc,selected=selectedcc)
     
   })
   
@@ -111,8 +114,10 @@ shinyServer(function(input, output) { # server is defined within these parenthes
   output$date<-renderUI({
     a=min(CHR()$Date)
     b=max(CHR()$Date)
-    dateRangeInput("date_range", "Date Cutoff Ranges:", 
-                   start =a, end =b )
+    out1 <- dateRangeInput("date_range", "Date Cutoff Ranges:", 
+                           start =a, end =b )
+    if (!is.null(Read_Settings()[["date_range"]])) updateDateRangeInput(session, inputId= "date_range", start = Read_Settings()[["date_range"]][1], end = Read_Settings()[["date_range"]][2])
+    return(out1)
   })
   
   
@@ -120,47 +125,63 @@ shinyServer(function(input, output) { # server is defined within these parenthes
   output$cost_lower<-renderUI({
     a=min(CHR()$Total_Cost)
     b=max(CHR()$Total_Cost)
-    sliderInput("cost_lower", "Lower Total Cost Cutoff:", 
-                min =a , max = b, value = a, step= NULL)
+    c = a
+    out1 <- sliderInput("cost_lower", "Lower Total Cost Cutoff:", 
+                        min =a , max = b, value = c, step= NULL)
+    if (!is.null(Read_Settings()[["cost_lower"]])) updateSliderInput(session, inputId= "cost_lower", value = Read_Settings()[["cost_lower"]])
+    return(out1)
   })
   
   output$cost_upper<-renderUI({
     a=min(CHR()$Total_Cost)
     b=max(CHR()$Total_Cost)
-    sliderInput("cost_upper", "Upper Total Cost Cutoff:", 
-                min = a, max = b, value = b, step= NULL)
+    c = b
+    out1 <- sliderInput("cost_upper", "Upper Total Cost Cutoff:", 
+                        min = a, max = b, value = c, step= NULL)
+    if (!is.null(Read_Settings()[["cost_upper"]])) updateSliderInput(session, inputId= "cost_upper", value = Read_Settings()[["cost_upper"]])
+    return(out1)
   })
-  
-  
   
   output$miles_lower<-renderUI({
     a=min(CHR()$Total_Mileage)
     b=max(CHR()$Total_Mileage)
-    
-    sliderInput("miles_lower", "Lower Mileage Cutoff:", 
-                min =a , max = b, value = a, step= NULL)
+    c = a
+    out1 <- sliderInput("miles_lower", "Lower Mileage Cutoff:", 
+                        min =a , max = b, value = c, step= NULL)
+    if (!is.null(Read_Settings()[["miles_lower"]])) updateSliderInput(session, inputId= "miles_lower", value = Read_Settings()[["miles_lower"]])
+    return(out1)
   })
   
   output$miles_upper<-renderUI({
     a=min(CHR()$Total_Mileage)
     b=max(CHR()$Total_Mileage)
-    sliderInput("miles_upper", "Upper Mileage Cutoff:", 
-                min = a, max = b, value = b, step= NULL)
+    c = b
+    out1 <- sliderInput("miles_upper", "Upper Mileage Cutoff:", 
+                        min = a, max = b, value = c, step= NULL)
+    if (!is.null(Read_Settings()[["miles_upper"]])) updateSliderInput(session, inputId= "miles_upper", value = Read_Settings()[["miles_upper"]])
+    return(out1)
   })
   
   
   output$RPM_lower<-renderUI({
     a=min(CHR()$RPM,na.rm=T)
     b=max(CHR()$RPM,na.rm=T)
-    sliderInput("RPM_lower", "Lower RPM Cutoff:", 
-                min =a, max = b, value = 1, step= NULL)
+    c = 1
+    out1 <- sliderInput("RPM_lower", "Lower RPM Cutoff:", 
+                        min =a, max = b, value = c, step= NULL)
+    if (!is.null(Read_Settings()[["RPM_lower"]])) updateSliderInput(session, inputId= "RPM_lower",  value = Read_Settings()[["RPM_lower"]])
+    return(out1)
   })
   
   output$RPM_upper<-renderUI({
     a=min(CHR()$RPM,na.rm=T)
     b=max(CHR()$RPM,na.rm=T)
-    sliderInput("RPM_upper", "Upper RPM Cutoff:", 
-                min = a, max = b, value = 5, step= NULL)
+    c = 5
+    
+    out1 <- sliderInput("RPM_upper", "Upper RPM Cutoff:", 
+                        min = a, max = b, value = c, step= NULL)
+    if (!is.null(Read_Settings()[["RPM_upper"]])) updateSliderInput(session, inputId= "RPM_upper",value = Read_Settings()[["RPM_upper"]])
+    return(out1)
   })
   
   #Lane1 UI element rendering
@@ -169,20 +190,29 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     dat<-FIL()$Origin_Zip
     orig<-unique(dat)
     orig<-sort(orig)###this removes NA's from the list so we need to add an option in the list for NA's
+    comp <- c(as.character(orig), "NA")
     orig<-c(orig,NA)
+    selected <- c()
+    if (!is.null(Read_Settings()[["l1_orig_zip"]])){
+      selected <- orig[which(comp%in%Read_Settings()[["l1_orig_zip"]][["right"]])]
+      orig <- orig[which(!comp%in%Read_Settings()[["l1_orig_zip"]][["right"]])]}
     chooserInput("l1_orig_zip", "Available", "Selected",
-                 orig, c(), size = 10, multiple = TRUE
+                 orig, selected, size = 10, multiple = TRUE
     )
-    
   })
   
   output$l1_dest_zip<-renderUI({
     dat<-FIL()$Destination_Zip
     dest<-unique(dat)
     dest<-sort(dest)###this removes NA's from the list so we need to add an option in the list for NA's
+    comp <- c(as.character(dest), "NA")
     dest<-c(dest,NA)
+    selected <- c()
+    if (!is.null(Read_Settings()[["l1_dest_zip"]])){
+      selected <- dest[which(comp%in%Read_Settings()[["l1_dest_zip"]][["right"]])]
+      dest <- dest[which(!comp%in%Read_Settings()[["l1_dest_zip"]][["right"]])]}
     chooserInput("l1_dest_zip", "Available", "Selected",
-                 dest, c(), size = 10, multiple = TRUE
+                 dest, selected, size = 10, multiple = TRUE
     )
     
   })
@@ -191,9 +221,14 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     dat<-FIL()$Stop_Count
     dest<-unique(dat)
     dest<-sort(dest)###this removes NA's from the list so we need to add an option in the list for NA's
+    comp <- c(as.character(dest), "NA")
     dest<-c(dest,NA)
+    unselected <- c()
+    if (!is.null(Read_Settings()[["l1_stop_count"]])){
+      unselected <- dest[which(!comp%in%Read_Settings()[["l1_stop_count"]][["right"]])]
+      dest <- dest[which(comp%in%Read_Settings()[["l1_stop_count"]][["right"]])]}
     chooserInput("l1_stop_ct", "Available", "Selected",
-                 c(), dest, size = 10, multiple = TRUE
+                 unselected, dest, size = 10, multiple = TRUE
     )
     
   })
@@ -202,8 +237,12 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     dat<-FIL()$Lane
     dest<-unique(dat)
     dest<-sort(dest)###this removes NA's from the list so we need to add an option in the list for NA's
+    selected <- c()
+    if (!is.null(Read_Settings()[["l1_lane_desc"]])){
+      selected <- dest[which(dest%in%Read_Settings()[["l1_lane_desc"]][["right"]])]
+      dest <- dest[which(!dest%in%Read_Settings()[["l1_lane_desc"]][["right"]])]}
     chooserInput("l1_lane_desc", "Available", "Selected",
-                 dest, c(), size = 10, multiple = TRUE
+                 dest, selected, size = 10, multiple = TRUE
     )
     
   })
@@ -212,8 +251,12 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     dat<-FIL()$Orig_State
     dest<-unique(dat)
     dest<-sort(dest)###this removes NA's from the list so we need to add an option in the list for NA's
+    selected <- c()
+    if (!is.null(Read_Settings()[["l1_orig_state"]])){
+      selected <- dest[which(dest%in%Read_Settings()[["l1_orig_state"]][["right"]])]
+      dest <- dest[which(!dest%in%Read_Settings()[["l1_orig_state"]][["right"]])]}
     chooserInput("l1_orig_state", "Available", "Selected",
-                 dest, c(), size = 10, multiple = TRUE
+                 dest, selected, size = 10, multiple = TRUE
     )
     
   })
@@ -222,8 +265,12 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     dat<-FIL()$Load_Region
     dest<-unique(dat)
     dest<-sort(dest)###this removes NA's from the list so we need to add an option in the list for NA's
+    selected <- c()
+    if (!is.null(Read_Settings()[["l1_load_region"]])){
+      selected <- dest[which(dest%in%Read_Settings()[["l1_load_region"]][["right"]])]
+      dest <- dest[which(!dest%in%Read_Settings()[["l1_load_region"]][["right"]])]}
     chooserInput("l1_load_region", "Available", "Selected",
-                 dest, c(), size = 10, multiple = TRUE
+                 dest, selected, size = 10, multiple = TRUE
     )
     
   })
@@ -232,8 +279,12 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     dat<-FIL()$Delivery_State
     dest<-unique(dat)
     dest<-sort(dest)###this removes NA's from the list so we need to add an option in the list for NA's
+    selected <- c()
+    if (!is.null(Read_Settings()[["l1_delivery_state"]])){
+      selected <- dest[which(dest%in%Read_Settings()[["l1_delivery_state"]][["right"]])]
+      dest <- dest[which(!dest%in%Read_Settings()[["l1_delivery_state"]][["right"]])]}
     chooserInput("l1_delivery_state", "Available", "Selected",
-                 dest, c(), size = 10, multiple = TRUE
+                 dest, selected, size = 10, multiple = TRUE
     )
     
   })
@@ -242,8 +293,12 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     dat<-FIL()$Delivery_Region
     dest<-unique(dat)
     dest<-sort(dest)###this removes NA's from the list so we need to add an option in the list for NA's
+    selected <- c()
+    if (!is.null(Read_Settings()[["l1_delivery_region"]])){
+      selected <- dest[which(dest%in%Read_Settings()[["l1_delivery_region"]][["right"]])]
+      dest <- dest[which(!dest%in%Read_Settings()[["l1_delivery_region"]][["right"]])]}
     chooserInput("l1_delivery_region", "Available", "Selected",
-                 dest, c(), size = 10, multiple = TRUE
+                 dest, selected, size = 10, multiple = TRUE
     )
     
   })
@@ -252,9 +307,14 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     dat<-FIL()$Origin_Zip
     orig<-unique(dat)
     orig<-sort(orig)###this removes NA's from the list so we need to add an option in the list for NA's
+    comp <- c(as.character(orig), "NA")
     orig<-c(orig,NA)
+    selected <- c()
+    if (!is.null(Read_Settings()[["l2_orig_zip"]])){
+      selected <- orig[which(comp%in%Read_Settings()[["l2_orig_zip"]][["right"]])]
+      orig <- orig[which(!comp%in%Read_Settings()[["l2_orig_zip"]][["right"]])]}
     chooserInput("l2_orig_zip", "Available", "Selected",
-                 orig, c(), size = 10, multiple = TRUE
+                 orig, selected, size = 10, multiple = TRUE
     )
     
   })
@@ -263,9 +323,14 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     dat<-FIL()$Destination_Zip
     dest<-unique(dat)
     dest<-sort(dest)###this removes NA's from the list so we need to add an option in the list for NA's
+    comp <- c(as.character(dest), "NA")
     dest<-c(dest,NA)
+    selected <- c()
+    if (!is.null(Read_Settings()[["l2_dest_zip"]])){
+      selected <- dest[which(comp%in%Read_Settings()[["l2_dest_zip"]][["right"]])]
+      dest <- dest[which(!comp%in%Read_Settings()[["l2_dest_zip"]][["right"]])]}
     chooserInput("l2_dest_zip", "Available", "Selected",
-                 dest, c(), size = 10, multiple = TRUE
+                 dest, selected, size = 10, multiple = TRUE
     )
     
   })
@@ -274,9 +339,14 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     dat<-FIL()$Stop_Count
     dest<-unique(dat)
     dest<-sort(dest)###this removes NA's from the list so we need to add an option in the list for NA's
+    comp <- c(as.character(dest), "NA")
     dest<-c(dest,NA)
+    unselected <- c()
+    if (!is.null(Read_Settings()[["l2_stop_count"]])){
+      unselected <- dest[which(!comp%in%Read_Settings()[["l2_stop_count"]][["right"]])]
+      dest <- dest[which(comp%in%Read_Settings()[["l2_stop_count"]][["right"]])]}
     chooserInput("l2_stop_ct", "Available", "Selected",
-                 c(), dest, size = 10, multiple = TRUE
+                 unselected, dest, size = 10, multiple = TRUE
     )
     
   })
@@ -285,8 +355,12 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     dat<-FIL()$Lane
     dest<-unique(dat)
     dest<-sort(dest)###this removes NA's from the list so we need to add an option in the list for NA's
+    selected <- c()
+    if (!is.null(Read_Settings()[["l2_lane_desc"]])){
+      selected <- dest[which(dest%in%Read_Settings()[["l2_lane_desc"]][["right"]])]
+      dest <- dest[which(!dest%in%Read_Settings()[["l2_lane_desc"]][["right"]])]}
     chooserInput("l2_lane_desc", "Available", "Selected",
-                 dest, c(), size = 10, multiple = TRUE
+                 dest, selected, size = 10, multiple = TRUE
     )
     
   })
@@ -295,8 +369,12 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     dat<-FIL()$Orig_State
     dest<-unique(dat)
     dest<-sort(dest)###this removes NA's from the list so we need to add an option in the list for NA's
+    selected <- c()
+    if (!is.null(Read_Settings()[["l2_orig_state"]])){
+      selected <- dest[which(dest%in%Read_Settings()[["l2_orig_state"]][["right"]])]
+      dest <- dest[which(!dest%in%Read_Settings()[["l2_orig_state"]][["right"]])]}
     chooserInput("l2_orig_state", "Available", "Selected",
-                 dest, c(), size = 10, multiple = TRUE
+                 dest, selected, size = 10, multiple = TRUE
     )
     
   })
@@ -305,8 +383,12 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     dat<-FIL()$Load_Region
     dest<-unique(dat)
     dest<-sort(dest)###this removes NA's from the list so we need to add an option in the list for NA's
+    selected <- c()
+    if (!is.null(Read_Settings()[["l2_load_region"]])){
+      selected <- dest[which(dest%in%Read_Settings()[["l2_load_region"]][["right"]])]
+      dest <- dest[which(!dest%in%Read_Settings()[["l2_load_region"]][["right"]])]}
     chooserInput("l2_load_region", "Available", "Selected",
-                 dest, c(), size = 10, multiple = TRUE
+                 dest, selected, size = 10, multiple = TRUE
     )
     
   })
@@ -315,8 +397,12 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     dat<-FIL()$Delivery_State
     dest<-unique(dat)
     dest<-sort(dest)###this removes NA's from the list so we need to add an option in the list for NA's
+    selected <- c()
+    if (!is.null(Read_Settings()[["l2_delivery_state"]])){
+      selected <- dest[which(dest%in%Read_Settings()[["l2_delivery_state"]][["right"]])]
+      dest <- dest[which(!dest%in%Read_Settings()[["l2_delivery_state"]][["right"]])]}
     chooserInput("l2_delivery_state", "Available", "Selected",
-                 dest, c(), size = 10, multiple = TRUE
+                 dest, selected, size = 10, multiple = TRUE
     )
     
   })
@@ -325,8 +411,12 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     dat<-FIL()$Delivery_Region
     dest<-unique(dat)
     dest<-sort(dest)###this removes NA's from the list so we need to add an option in the list for NA's
+    selected <- c()
+    if (!is.null(Read_Settings()[["l2_delivery_region"]])){
+      selected <- dest[which(dest%in%Read_Settings()[["l2_delivery_region"]][["right"]])]
+      dest <- dest[which(!dest%in%Read_Settings()[["l2_delivery_region"]][["right"]])]}
     chooserInput("l2_delivery_region", "Available", "Selected",
-                 dest, c(), size = 10, multiple = TRUE
+                 dest, selected, size = 10, multiple = TRUE
     )
     
   })
@@ -335,9 +425,14 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     dat<-FIL()$Origin_Zip
     orig<-unique(dat)
     orig<-sort(orig)###this removes NA's from the list so we need to add an option in the list for NA's
+    comp <- c(as.character(orig), "NA")
     orig<-c(orig,NA)
+    selected <- c()
+    if (!is.null(Read_Settings()[["l3_orig_zip"]])){
+      selected <- orig[which(comp%in%Read_Settings()[["l3_orig_zip"]][["right"]])]
+      orig <- orig[which(!comp%in%Read_Settings()[["l3_orig_zip"]][["right"]])]}
     chooserInput("l3_orig_zip", "Available", "Selected",
-                 orig, c(), size = 10, multiple = TRUE
+                 orig, selected, size = 10, multiple = TRUE
     )
     
   })
@@ -346,9 +441,14 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     dat<-FIL()$Destination_Zip
     dest<-unique(dat)
     dest<-sort(dest)###this removes NA's from the list so we need to add an option in the list for NA's
+    comp <- c(as.character(dest), "NA")
     dest<-c(dest,NA)
+    selected <- c()
+    if (!is.null(Read_Settings()[["l3_dest_zip"]])){
+      selected <- dest[which(comp%in%Read_Settings()[["l3_dest_zip"]][["right"]])]
+      dest <- dest[which(!comp%in%Read_Settings()[["l3_dest_zip"]][["right"]])]}
     chooserInput("l3_dest_zip", "Available", "Selected",
-                 dest, c(), size = 10, multiple = TRUE
+                 dest, selected, size = 10, multiple = TRUE
     )
     
   })
@@ -357,9 +457,14 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     dat<-FIL()$Stop_Count
     dest<-unique(dat)
     dest<-sort(dest)###this removes NA's from the list so we need to add an option in the list for NA's
+    comp <- c(as.character(dest), "NA")
     dest<-c(dest,NA)
+    unselected <- c()
+    if (!is.null(Read_Settings()[["l3_stop_count"]])){
+      unselected <- dest[which(!comp%in%Read_Settings()[["l3_stop_count"]][["right"]])]
+      dest <- dest[which(comp%in%Read_Settings()[["l3_stop_count"]][["right"]])]}
     chooserInput("l3_stop_ct", "Available", "Selected",
-                 c(), dest, size = 10, multiple = TRUE
+                 unselected, dest, size = 10, multiple = TRUE
     )
     
   })
@@ -368,8 +473,12 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     dat<-FIL()$Lane
     dest<-unique(dat)
     dest<-sort(dest)###this removes NA's from the list so we need to add an option in the list for NA's
+    selected <- c()
+    if (!is.null(Read_Settings()[["l3_lane_desc"]])){
+      selected <- dest[which(dest%in%Read_Settings()[["l3_lane_desc"]][["right"]])]
+      dest <- dest[which(!dest%in%Read_Settings()[["l3_lane_desc"]][["right"]])]}
     chooserInput("l3_lane_desc", "Available", "Selected",
-                 dest, c(), size = 10, multiple = TRUE
+                 dest, selected, size = 10, multiple = TRUE
     )
     
   })
@@ -378,8 +487,12 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     dat<-FIL()$Orig_State
     dest<-unique(dat)
     dest<-sort(dest)###this removes NA's from the list so we need to add an option in the list for NA's
+    selected <- c()
+    if (!is.null(Read_Settings()[["l3_orig_state"]])){
+      selected <- dest[which(dest%in%Read_Settings()[["l3_orig_state"]][["right"]])]
+      dest <- dest[which(!dest%in%Read_Settings()[["l3_orig_state"]][["right"]])]}
     chooserInput("l3_orig_state", "Available", "Selected",
-                 dest, c(), size = 10, multiple = TRUE
+                 dest, selected, size = 10, multiple = TRUE
     )
     
   })
@@ -398,8 +511,12 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     dat<-FIL()$Delivery_State
     dest<-unique(dat)
     dest<-sort(dest)###this removes NA's from the list so we need to add an option in the list for NA's
+    selected <- c()
+    if (!is.null(Read_Settings()[["l3_load_region"]])){
+      selected <- dest[which(dest%in%Read_Settings()[["l3_load_region"]][["right"]])]
+      dest <- dest[which(!dest%in%Read_Settings()[["l3_load_region"]][["right"]])]}
     chooserInput("l3_delivery_state", "Available", "Selected",
-                 dest, c(), size = 10, multiple = TRUE
+                 dest, selected, size = 10, multiple = TRUE
     )
     
   })
@@ -408,8 +525,12 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     dat<-FIL()$Delivery_Region
     dest<-unique(dat)
     dest<-sort(dest)###this removes NA's from the list so we need to add an option in the list for NA's
+    selected <- c()
+    if (!is.null(Read_Settings()[["l3_delivery_state"]])){
+      selected <- dest[which(dest%in%Read_Settings()[["l3_delivery_state"]][["right"]])]
+      dest <- dest[which(!dest%in%Read_Settings()[["l3_delivery_state"]][["right"]])]}
     chooserInput("l3_delivery_region", "Available", "Selected",
-                 dest, c(), size = 10, multiple = TRUE
+                 dest, selected, size = 10, multiple = TRUE
     )
     
   })
@@ -418,53 +539,63 @@ shinyServer(function(input, output) { # server is defined within these parenthes
   #Working UI elements for bundles 3, 4, & 5
   
   output$min_lead_slider <- renderUI({
-    sliderInput(inputId = "min_lead",
-                label = "Minimum Lead to Fit (in weeks)",
-                min = 0,
-                max = 12,
-                value = 0,
-                step = 1
+    out1 <- sliderInput(inputId = "min_lead",
+                        label = "Minimum Lead to Fit (in weeks)",
+                        min = 0,
+                        max = 12,
+                        value = 0,
+                        step = 1
     )
+    if (!is.null(Read_Settings()[["min_lead"]])) updateSliderInput(session, inputId= "min_lead", value = Read_Settings()[["min_lead"]])
+    return(out1)
   })
   
   output$max_lead_slider <- renderUI({
-    sliderInput(inputId="max_lead",
-                label="Maximum Lead to Fit (in weeks)",
-                min=0,
-                max=12,
-                value=0,
-                step=1                
+    out1 <- sliderInput(inputId="max_lead",
+                        label="Maximum Lead to Fit (in weeks)",
+                        min=0,
+                        max=12,
+                        value=0,
+                        step=1                
     )
+    if (!is.null(Read_Settings()[["max_lead"]])) updateSliderInput(session, inputId= "max_lead", value = Read_Settings()[["max_lead"]])
+    return(out1)
   })
   
   output$max_model_slider <- renderUI({
-    sliderInput(inputId="max_model",
-                label="Number of Variables in Model",
-                min=1,
-                max=10,
-                value=1,
-                step=1                
+    out1 <- sliderInput(inputId="max_model",
+                        label="Number of Variables in Model",
+                        min=1,
+                        max=10,
+                        value=1,
+                        step=1                
     )
+    if (!is.null(Read_Settings()[["max_model"]])) updateSliderInput(session, inputId= "max_model", value = Read_Settings()[["max_model"]])
+    return(out1)
   })
   
   output$backcast_ahead_slider <- renderUI({
-    sliderInput(inputId="backcast_ahead",
-                label="How Many Weeks to Predict Ahead?",
-                min=1,
-                max=52,
-                value=52,
-                step=1                
+    out1 <- sliderInput(inputId="backcast_ahead",
+                        label="How Many Weeks to Predict Ahead?",
+                        min=1,
+                        max=52,
+                        value=52,
+                        step=1                
     )
+    if (!is.null(Read_Settings()[["backcast_ahead"]])) updateSliderInput(session, inputId= "backcast_ahead", value = Read_Settings()[["backcast_ahead"]])
+    return(out1)
   })
   
   output$backcast_length_slider <- renderUI({
-    sliderInput(inputId = "backcast_length",
-                label = "Length of Backcast Fit (in weeks)",
-                min = 1,
-                max = 52,
-                value = 52,
-                step = 1                
+    out1 <- sliderInput(inputId = "backcast_length",
+                        label = "Length of Backcast Fit (in weeks)",
+                        min = 1,
+                        max = 52,
+                        value = 52,
+                        step = 1                
     )
+    if (!is.null(Read_Settings()[["backcast_length"]])) updateSliderInput(session, inputId= "backcast_length", value = Read_Settings()[["backcast_length"]])
+    return(out1)
   })
   
   output$gamma_numeric <- renderUI({
@@ -520,10 +651,12 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     colnames(x)<-gsub("_data","",colnames(x))
     
     choice<-colnames(x)
-    sel<-which(choice %in% "Oil_Fuel.Weekly.U.S..No.2.Diesel.Retail.Prices...Dollars.per.Gallon.")
+    sel<-choice[which(choice %in% "Oil_Fuel.Weekly.U.S..No.2.Diesel.Retail.Prices...Dollars.per.Gallon.")]
+    if (!is.null(Read_Settings())){
+      sel <- choice[which(choice%in%Read_Settings()[["predictors"]])]}
     checkboxGroupInput(inputId = "predictors",
                        label = "Select Predictors",
-                       choices = choice, selected=names(choice)[sel]
+                       choices = choice, selected=sel
     )
   })
   
@@ -536,10 +669,12 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     colnames(x)<-gsub("_data","",colnames(x))
     choice<-colnames(x)
     choice<-choice[grep("volume",choice)]
-    sel<-1
+    sel<- choice[1]
+    if (!is.null(Read_Settings())){
+      sel <- choice[which(choice%in%Read_Settings()[["volume"]])]}
     checkboxGroupInput(inputId = "volume",
                        label = "Select Prediction Lane Volume",
-                       choices = choice, selected=choice[sel]
+                       choices = choice, selected=sel
     )
   })
   
@@ -552,11 +687,13 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     
     choice<-colnames(x)
     choice_r<-choice[grep("RPM",colnames(x))]
-    sel_r<-which(choice_r %in% "CHR_Lane_1.RPM")
+    sel_r<-choice_r[which(choice_r %in% "CHR_Lane_1.RPM")]
     
+    if (!is.null(Read_Settings()[["response"]])){
+      sel_r <- choice_r[which(choice_r%in%Read_Settings()[["response"]])]}
     radioButtons(inputId = "response",
                  label = "Select Response",
-                 choices = choice_r, selected=names(choice_r)[sel_r]
+                 choices = choice_r, selected=sel_r
     )
   })
   
@@ -564,21 +701,27 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     PLOT=LANE_BUNDLE()[['PLOT']]
     choice3<-as.list(unique(PLOT$group))
     names(choice3)<-unique(PLOT$group)
-    
+    choice3 <- names(choice3)
+    sel <- choice3[1]
+    if (!is.null(Read_Settings()[["select"]])){
+      sel <- choice3[which(choice3%in%Read_Settings()[["select"]])]}
     radioButtons(inputId = "select",
                  label = "Data Selection for Plot",
-                 choices = choice3
+                 choices = choice3,
+                 selected = sel
     )
   })
   
   output$CI_percentile<- renderUI({
-    sliderInput(inputId = "CI_percentile",
-                label = "Percentile for Confidence Inerval (%)",
-                min = 60,
-                max = 99,
-                value = 95,
-                step = 1                
+    out1 <- sliderInput(inputId = "CI_percentile",
+                        label = "Percentile for Confidence Inerval (%)",
+                        min = 60,
+                        max = 99,
+                        value = 95,
+                        step = 1                
     )
+    if (!is.null(Read_Settings()[["CI_percentile"]])) updateSliderInput(session, inputId= "CI_percentile", value = Read_Settings()[["CI_percentile"]])
+    return(out1)
   })
   
   
@@ -591,8 +734,10 @@ shinyServer(function(input, output) { # server is defined within these parenthes
     datevect <- smooth_vals[[1]][!idxx]
     a=min(datevect)
     b=max(datevect)
-    dateRangeInput("quote_date", "Date Cutoff Ranges for Integrated Quote:", 
+    out1 <- dateRangeInput("quote_date", "Date Cutoff Ranges for Integrated Quote:", 
                    start =a, end =b )
+    if (!is.null(Read_Settings()[["quote_date"]])) updateDateRangeInput(session, inputId= "quote_date", start = Read_Settings()[["quote_date"]][1], end = Read_Settings()[["quote_date"]][2])
+    return(out1)
   })
   
   
@@ -621,6 +766,35 @@ shinyServer(function(input, output) { # server is defined within these parenthes
   #################################################################################################################################
   #################################### Bundle 1 data processing insertion point#########
   ##################################################################################################################################
+  
+  Read_Settings <- reactive({
+    inFile <- input$settings_file
+    if (is.null(inFile)) return(NULL)
+    load(inFile$datapath)
+    return(saved_settings)
+  })
+  
+  Change_static_settings <- observe({
+    if (is.null(Read_Settings())) return(NULL)
+    updateSliderInput(session, inputId= "rand_samp",value = Read_Settings()[["rand_samp"]])
+    updateNumericInput(session, inputId= "gamma", value = Read_Settings()[["gamma"]])
+    updateNumericInput(session, inputId= "interaction_split", value = Read_Settings()[["interaction_split"]])
+    updateNumericInput(session, inputId= "pick", value = Read_Settings()[["pick"]])
+    
+    updateSelectInput(session, inputId="lanes_choice", selected = Read_Settings()[["lanes_choice"]])
+    
+    updateCheckboxInput(session, inputId="interaction", value = Read_Settings()[["interaction"]])
+    updateCheckboxInput(session, inputId="seasonality", value = Read_Settings()[["seasonality"]])
+    updateCheckboxInput(session, inputId="linear", value = Read_Settings()[["linear"]])
+    
+  })
+  
+  output$downloadData<-downloadHandler(
+    filename = function(){paste(input$settings_name,".RData",sep = "")},
+    content = function(file){
+      saved_settings <- reactiveValuesToList(input)
+      save(saved_settings, file = file)
+    })
   
   Data<-reactive({
     inFile <- input$file1
