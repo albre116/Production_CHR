@@ -1,15 +1,5 @@
 rm(list=ls())
 gc()
-#setwd("~/GitHub/CHR_rev_2")
-#source("functions.r")
-#op<-par()
-#load("Bundle_2.RData")
-#x<-data.frame(DATA_FILL)
-#date<-as.POSIXct(x$Align_date,origin="1970-01-01")
-#date<-x$Align_date
-#date_cols<-grep("date",colnames(x))
-#x<-x[,-date_cols]
-#colnames(x)<-gsub("_data","",colnames(x))
 
 
 shinyUI(fluidPage(
@@ -31,32 +21,25 @@ shinyUI(fluidPage(
                                                                'Double Quote'='"',
                                                                'Single Quote'="'"),
                                                              '"'),
-                                                sliderInput("rand_samp","Random Sample of Data (%)",0,100,15,step=1),
+                                                sliderInput("rand_samp","Random Sample of Data (%)",0,100,100,step=1),
                                                 selectInput("lanes_choice","Number of Lanes to Construct",c(1,2,3))
                                                 ),
                                conditionalPanel(condition="input.navbar11=='data_load'",    
                                                 fileInput('settings_file', 'Load Previous Settings?',
                                                           accept=c('RData'))
                                ),
+                               
+                               
                                conditionalPanel(condition="input.navbar11=='api_data'",    
-                                                fileInput('api_file', 'Choose API CSV Data File',
-                                                          accept=c('text/csv', 'text/comma-separated-values,text/plain', '.csv')),
-                                                tags$hr(),
-                                                checkboxInput('header', 'Header', TRUE),
-                                                radioButtons('sep', 'Separator',
-                                                             c(Comma=',',
-                                                               Semicolon=';',
-                                                               Tab='\t'),
-                                                             ','),
-                                                radioButtons('quote', 'Quote',
-                                                             c(None='',
-                                                               'Double Quote'='"',
-                                                               'Single Quote'="'"),
-                                                             '"')
+                                                fileInput('api_file', 'Choose API Data File (otherwise hit update)',
+                                                          accept=c('RData')),
+                                                actionButton("refresh","Update API Data"),
+                                                textInput("API_SAVE_NAME","Save API to File Name:",value="API_SAVE_NAME"),
+                                                downloadButton("API_SAVE","Download API Data and Tables")
+                                                
                                ),
-                               conditionalPanel(condition="input.navbar11=='api_data'",
-                                                actionButton("refresh","Refresh API Data & Save Indicator Changes?")
-                               ),
+                             
+                               
                                conditionalPanel(condition="input.navbar11=='outlier'",
                                                 uiOutput("date"),
                                                 uiOutput("cost_lower"),
@@ -206,241 +189,3 @@ shinyUI(fluidPage(
                                )
            )
            ))))
-
-# shinyUI(navbarPage(
-#   title = "Analysis Evaluation",
-#   tabPanel("Raw/Imputed Data",sidebarLayout(
-#     sidebarPanel(radioButtons(inputId= "select",
-#                               label = "Data Selection for Plots",
-#                               choices = choice3)),
-#     mainPanel(
-#            navbarPage(title = "",
-#                       tabPanel("Raw Data", plotOutput("Raw")), 
-#                       tabPanel("Imputed Data", plotOutput("Impute")))))
-#            ),
-#   tabPanel("Model Selection", sidebarLayout(
-#     sidebarPanel(
-#       sliderInput(inputId = "min_lead",
-#                   label = "Minimum Lead to Fit (in weeks)",
-#                   min = 0,
-#                   max = 12,
-#                   value = 0,
-#                   step = 1
-#                   ),
-#       sliderInput(inputId="max_lead",
-#                   label="Maximum Lead to Fit (in weeks)",
-#                   min=0,
-#                   max=12,
-#                   value=0,
-#                   step=1                
-#       ),
-#       sliderInput(inputId="max_model",
-#                   label="Number of Variables in Model",
-#                   min=1,
-#                   max=10,
-#                   value=1,
-#                   step=1                
-#       ),
-#       numericInput(inputId="gamma", 
-#                    label="smooth penalty:", 
-#                    value=1.4
-#                    
-#       ),
-#       sliderInput(inputId="backcast_ahead",
-#                   label="How Many Weeks to Predict Ahead?",
-#                   min=1,
-#                   max=52,
-#                   value=52,
-#                   step=1                
-#       ),
-#       numericInput(inputId="pick", 
-#                    label="Variable to Pick to Add to Model:", 
-#                    value=1
-#                    
-#       ),
-#       checkboxInput(inputId = "interaction",
-#                     label = "1/2 year Interaction for Volume Terms?",
-#                     value=FALSE
-#       ),
-#       radioButtons(inputId = "response",
-#                    label = "Select Response",
-#                    choices = choice_r, selected=names(choice_r)[sel_r]
-#       ),
-#       checkboxGroupInput(inputId = "predictors",
-#                          label = "Select Predictors",
-#                          choices = choice, selected=names(choice)[sel]
-#       )
-#       ),
-#     mainPanel(
-#       navbarPage(title = "",
-#                  tabPanel("Variable Importance", plotOutput("Var_Import")),
-#                  tabPanel("Conditional Effects", plotOutput("cond_effect")),
-#                  tabPanel("Diagnostics", plotOutput("diagnostic")),
-#                  tabPanel("Model Fit", plotOutput("fit")),
-#                  tabPanel("ARIMA Error Stream", plotOutput("ts_error")),
-#                  tabPanel("Table of Effects", dataTableOutput("GAM_effects"))
-#       )
-#     )
-#   )),
-#   tabPanel("Prediction", sidebarLayout(
-#     sidebarPanel(
-#       sliderInput(inputId = "min_lead",
-#                   label = "Minimum Lead to Fit (in weeks)",
-#                   min = 0,
-#                   max = 12,
-#                   value = 0,
-#                   step = 1
-#       ),
-#       sliderInput(inputId="max_lead",
-#                   label="Maximum Lead to Fit (in weeks)",
-#                   min=0,
-#                   max=12,
-#                   value=0,
-#                   step=1                
-#       ),
-#       sliderInput(inputId="max_model",
-#                   label="Number of Variables in Model",
-#                   min=1,
-#                   max=10,
-#                   value=1,
-#                   step=1                
-#       ),
-#       numericInput(inputId="gamma", 
-#                    label="smooth penalty:", 
-#                    value=1.4
-#                    
-#       ),
-#       sliderInput(inputId="backcast_ahead",
-#                   label="How Many Weeks to Predict Ahead?",
-#                   min=1,
-#                   max=52,
-#                   value=52,
-#                   step=1                
-#       ),
-#       sliderInput(inputId = "backcast_length",
-#                   label = "Length of Backcast Fit (in weeks)",
-#                   min = 1,
-#                   max = 52,
-#                   value = 52,
-#                   step = 1                
-#       ),
-#       uiOutput("matrix_values")
-#       
-#     ),
-#     mainPanel(
-#       navbarPage(title = "",
-#                  tabPanel("Predictor Values", plotOutput("pred_fwd")),
-#                  tabPanel("Model Predictions", plotOutput("preds")),
-#                  tabPanel("Table of Predictions", dataTableOutput("GAM_predictions")),
-#                  tabPanel("Backcasting Predictions", plotOutput("Backcast_graph"))
-#       )
-#     )
-#   ))
-# ))
-
-
-# shinyUI(fluidPage( 
-#   
-#   titlePanel("Modeling Scenario"), 
-#   sidebarLayout(
-#     sidebarPanel( 
-#       
-#       sliderInput(inputId = "min_lead",
-#                   label = "Minimum Lead to Fit (in weeks)",
-#                   min = 0,
-#                   max = 12,
-#                   value = 0,
-#                   step = 1                
-#       ),
-#       
-#       sliderInput(inputId="max_lead",
-#                   label="Maximum Lead to Fit (in weeks)",
-#                   min=0,
-#                   max=12,
-#                   value=0,
-#                   step=1                
-#       ),
-#       sliderInput(inputId="max_model",
-#                   label="Number of Variables in Model",
-#                   min=1,
-#                   max=10,
-#                   value=1,
-#                   step=1                
-#       ),
-#       numericInput(inputId="gamma", 
-#                    label="smooth penalty:", 
-#                    value=1.4
-#                    
-#       ),
-#       sliderInput(inputId="backcast_ahead",
-#                   label="How Many Weeks to Predict Ahead?",
-#                   min=1,
-#                   max=52,
-#                   value=52,
-#                   step=1                
-#       ),
-#       conditionalPanel(condition="input.tabset1=='var_import'|| input.tabset1=='cond_effect'",
-#                        numericInput(inputId="pick", 
-#                                     label="Variable to Pick to Add to Model:", 
-#                                     value=1
-#                                     
-#                        )),
-#       
-#       conditionalPanel(condition="input.tabset1=='var_import'|| input.tabset1=='cond_effect'",
-#                        checkboxInput(inputId = "interaction",
-#                                      label = "1/2 year Interaction for Volume Terms?",
-#                                      value=FALSE
-#                        )),
-#       conditionalPanel(condition="input.tabset1=='var_import'|| input.tabset1=='cond_effect'",
-#                        radioButtons(inputId = "response",
-#                                     label = "Select Response",
-#                                     choices = choice_r, selected=names(choice_r)[sel_r]
-#                        )),
-#       conditionalPanel(condition="input.tabset1=='var_import' || input.tabset1=='cond_effect'",
-#                        checkboxGroupInput(inputId = "predictors",
-#                                           label = "Select Predictors",
-#                                           choices = choice, selected=names(choice)[sel]
-#                        )),
-#       
-#       conditionalPanel(condition="input.tabset1=='pred_fwd' || input.tabset1=='preds'",
-#                        uiOutput("matrix_values")
-#                        
-#       ),
-#       conditionalPanel(condition="input.tabset1=='raw' || input.tabset1=='impute'",
-#                        radioButtons(inputId = "select",
-#                                     label = "Data Selection for Plot",
-#                                     choices = choice3
-#                        )),
-#       conditionalPanel(condition="input.tabset1=='bcst_pred'",
-#                        sliderInput(inputId = "backcast_length",
-#                                    label = "Length of Backcast Fit (in weeks)",
-#                                    min = 1,
-#                                    max = 52,
-#                                    value = 52,
-#                                    step = 1                
-#                        ))
-#       
-#       
-#       
-#       
-#       
-#       
-#     ),
-#     mainPanel(
-#       tabsetPanel( id="tabset1",
-#                    tabPanel("Variable Importance", plotOutput("Var_Import"),value="var_import"),
-#                    tabPanel("Conditional Effects", plotOutput("cond_effect"),value="cond_effect"),
-#                    tabPanel("Diagnostics", plotOutput("diagnostic"),value="diagnostic"),
-#                    tabPanel("Model Fit", plotOutput("fit"),value="fit"),
-#                    tabPanel("Predictor Values", plotOutput("pred_fwd"),value="pred_fwd"),
-#                    tabPanel("ARIMA Error Stream", plotOutput("ts_error"),value="ts_error"),
-#                    tabPanel("Model Predictions", plotOutput("preds"),value="preds"),
-#                    tabPanel("Table of Effects", dataTableOutput("GAM_effects"),value="GAM_effects"),
-#                    tabPanel("Table of Predictions", dataTableOutput("GAM_predictions"),value="GAM_predictions"),
-#                    tabPanel("Raw Data", plotOutput("Raw"),value="raw"), 
-#                    tabPanel("Imputed Data", plotOutput("Impute"),value="impute"),
-#                    tabPanel("Backcasting Predictions", plotOutput("Backcast_graph"),value="bcst_pred")
-#       )
-#     )
-#   )
-# ))

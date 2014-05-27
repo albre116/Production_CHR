@@ -1,8 +1,5 @@
 rm(list=ls())
 gc()
-#setwd("~/GitHub/CHR_rev_2")
-#source("functions.r")
-#op<-par() #is this necessary anymore
 options(shiny.maxRequestSize=500*1024^2)###500 megabyte file upload limit set
 
 
@@ -25,7 +22,7 @@ shinyServer(function(input, output, session) { # server is defined within these 
     selectedcc <- cc
     if (!is.null(Read_Settings())){
       selectedcc <- cc[which(cc%in%Read_Settings()[["API_choice"]])]}
-    data.frame(Abbreviations=dest,Full_Names=cc)
+    #data.frame(Abbreviations=dest,Full_Names=cc)
     checkboxGroupInput("API_choice", "Choose Economic Indicators",
                        cc,selected=selectedcc)
     
@@ -809,7 +806,10 @@ shinyServer(function(input, output, session) { # server is defined within these 
   })
   
   
-  READ_APICSV <- reactive({
+  READ_API <- reactive({###use tmp file from disk or specify names of variables to extract
+    CENSUS=NULL
+    Json_fuel=NULL
+    path=NULL
     inFile <- input$api_file
     if (is.null(inFile)){
       if(file.exists("census_api.csv")){
@@ -818,43 +818,37 @@ shinyServer(function(input, output, session) { # server is defined within these 
         path=NULL
       }else{return(NULL)}
     }else{
-      api_readtable<-read.csv(inFile$datapath, header=input$header, sep=input$sep, quote=input$quote, na.strings=c("n/a","XXX"),nrows=-1)
+      load(inFile$datapath)
+      CENSUS=saved_api[["CENSUS"]]
+      Json_fuel=saved_api[["Json_fuel"]]
+      api_readtable=saved_api[["api_readtable"]]
       apicolnames <- colnames(api_readtable)
       path=inFile$datapath
     }
-    return(structure(list("api_readtable" = api_readtable, "apicolnames" = apicolnames,"path"=path)))
+    return(structure(list("api_readtable" = api_readtable,"CENSUS"=CENSUS,"Json_fuel"=Json_fuel,"apicolnames" = apicolnames,"path"=path)))
   })
   
   
   API_Update<-reactive({
     if(input$refresh==0){
-      api_readtable <- READ_APICSV()[["api_readtable"]]
+      api_readtable <- READ_API()[["api_readtable"]]
     }
     else{
       isolate({
         api_readtable <- data.frame(input$api_names)
         api_readtable<-api_readtable[2:nrow(api_readtable),]
-        colnames(api_readtable) <- READ_APICSV()[["apicolnames"]]
-        if(!is.null(READ_APICSV()[["path"]])){write.csv(api_readtable, file = READ_APICSV()[["path"]], row.names = FALSE)}
-        write.csv(api_readtable,row.names=FALSE)
-        
+        colnames(api_readtable) <- READ_API()[["apicolnames"]]
       })}
     return(api_readtable)
-    
-    
   })
   
   API<-reactive({
+    if(is.null(READ_API())){return(NULL)}
     CHR<-FINAL()
-    if(is.null(READ_APICSV())){return(NULL)}
-    api_readtable<-READ_APICSV()[["api_readtable"]]
-    
-    if(input$refresh==0 & file.exists("api_last_run.RData")){
-      load("api_last_run.RData")
-      if(START==format(min(CHR$Date),format="%Y-%m-%d") & END==format(Sys.time(),format="%Y-%m-%d"))
-        {return(list(DATA_I=DATA_I,DATA_FILL_I=DATA_FILL_I))}
-    }
-    
+    CENSUS<-READ_API()[["CENSUS"]]
+    Json_fuel<-READ_API()[["Json_fuel"]]
+    api_readtable<-API_Update()
+    path<-READ_API()[["path"]]
     fuel_choice<-c("PET.EMD_EPD2D_PTE_NUS_DPG.W","PET.EMD_EPD2D_PTE_R10_DPG.W","PET.EMD_EPD2D_PTE_R1X_DPG.W",
                    "PET.EMD_EPD2D_PTE_R1Y_DPG.W","PET.EMD_EPD2D_PTE_R1Z_DPG.W","PET.EMD_EPD2D_PTE_R20_DPG.W",
                    "PET.EMD_EPD2D_PTE_R30_DPG.W","PET.EMD_EPD2D_PTE_R40_DPG.W","PET.EMD_EPD2D_PTE_R50_DPG.W ",
@@ -862,7 +856,7 @@ shinyServer(function(input, output, session) { # server is defined within these 
     FUEL_DATA<-vector("list",length(fuel_choice))
     fuel_names<-character(length(fuel_choice))
     for (beta in 1:length(fuel_choice)){
-    Json_fuel<-EPA_API(series=fuel_choice[beta],key="A9BCC61DA44BA0C0ECA4A42D622D7D44")
+    if (input$refresh!=0 | is.null(path)){Json_fuel<-EPA_API(series=fuel_choice[beta],key="A9BCC61DA44BA0C0ECA4A42D622D7D44")}
     date<-c()
     fuel<-c()
     for (i in 1:length(Json_fuel$series[[1]][[15]])){
@@ -880,7 +874,7 @@ shinyServer(function(input, output, session) { # server is defined within these 
     }
     
     series<-api_readtable
-    CENSUS<-CENSUS_API(series=series,key="cf2bc020b12d020f8ee3155f74198a21dc585845")
+    if (input$refresh!=0 | is.null(path)){CENSUS<-CENSUS_API(series=series,key="cf2bc020b12d020f8ee3155f74198a21dc585845")}
     fuel_length<-length(FUEL_DATA)
     out<-vector("list",length(CENSUS)+fuel_length)##add in a slots for fuel data
     out[1:fuel_length]<-FUEL_DATA
@@ -934,21 +928,18 @@ shinyServer(function(input, output, session) { # server is defined within these 
     
     #DATA_FILL_I<-loess_fill(DATA_I,t_index=1,span=c(10:1/10),folds=5)
     DATA_FILL_I<-PIECE_fill(DATA_I,t_index=1)
-    
-    
-#     START=format(min(CHR$Date),format="%Y-%m-%d")
-#     
-#     keep<-as.Date(DATA_I[[1]],format="%Y-%m-%d")>=as.Date(START,format="%Y-%m-%d")
-#     DATA_I[[1]]<-DATA_I[[1]][keep]
-#     DATA_FILL_I[[1]]<-DATA_FILL_I[[1]][keep]
-#     for (i in 2:length(DATA_I)){
-#       DATA_I[[i]]<-DATA_I[[i]][keep,,drop=F]
-#       DATA_FILL_I[[i]]<-DATA_FILL_I[[i]][keep,,drop=F]
-#     }
-    
-    save(DATA_I,DATA_FILL_I,START,END,file="api_last_run.RData")##think about adding null statement for file save problem
-    list(DATA_I=DATA_I,DATA_FILL_I=DATA_FILL_I)
+    list(DATA_I=DATA_I,DATA_FILL_I=DATA_FILL_I,CENSUS=CENSUS,Json_fuel=Json_fuel,path=path,api_readtable=api_readtable)
   })
+  
+  output$API_SAVE<-downloadHandler(
+    filename = function(){paste(input$API_SAVE_NAME,".RData",sep = "")},
+    content = function(file){
+      saved_api<-API()
+      #saved_api <- reactiveValuesToList(tmp)
+      save(saved_api, file = file)
+    })
+
+  
   
 
   
@@ -1928,6 +1919,10 @@ shinyServer(function(input, output, session) { # server is defined within these 
 output$raw_api <- renderUI({
   api_readtable <- API_Update()
   api_readtable<-data.frame(rbind(toupper(colnames(api_readtable)),as.matrix(api_readtable)))
+  if (!is.null(Read_Settings()[["api_names"]])){
+  api_readtable<-data.frame(Read_Settings()[["api_names"]])
+  }
+    
   matrixCustom('api_names', 'API Indicators to Read',api_readtable)
   ###you can access these values with input$api_names as the variable anywhere in the server side file
   
