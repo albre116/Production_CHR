@@ -811,7 +811,7 @@ shinyServer(function(input, output, session) { # server is defined within these 
   
   READ_API <- reactive({###use tmp file from disk or specify names of variables to extract
     CENSUS=NULL
-    Json_fuel=NULL
+    FUEL_DATA=NULL
     path=NULL
     inFile <- input$api_file
     if (is.null(inFile)){
@@ -823,12 +823,12 @@ shinyServer(function(input, output, session) { # server is defined within these 
     }else{
       load(inFile$datapath)
       CENSUS=saved_api[["CENSUS"]]
-      Json_fuel=saved_api[["Json_fuel"]]
+      FUEL_DATA=saved_api[["FUEL_DATA"]]
       api_readtable=saved_api[["api_readtable"]]
       apicolnames <- colnames(api_readtable)
       path=inFile$datapath
     }
-    return(structure(list("api_readtable" = api_readtable,"CENSUS"=CENSUS,"Json_fuel"=Json_fuel,"apicolnames" = apicolnames,"path"=path)))
+    return(structure(list("api_readtable" = api_readtable,"CENSUS"=CENSUS,"FUEL_DATA"=FUEL_DATA,"apicolnames" = apicolnames,"path"=path)))
   })
   
   
@@ -849,17 +849,22 @@ shinyServer(function(input, output, session) { # server is defined within these 
     if(is.null(READ_API())){return(NULL)}
     CHR<-FINAL()
     CENSUS<-READ_API()[["CENSUS"]]
-    Json_fuel<-READ_API()[["Json_fuel"]]
+    FUEL_DATA<-READ_API()[["FUEL_DATA"]]
     api_readtable<-API_Update()
     path<-READ_API()[["path"]]
+    
+    
+    
     fuel_choice<-c("PET.EMD_EPD2D_PTE_NUS_DPG.W","PET.EMD_EPD2D_PTE_R10_DPG.W","PET.EMD_EPD2D_PTE_R1X_DPG.W",
                    "PET.EMD_EPD2D_PTE_R1Y_DPG.W","PET.EMD_EPD2D_PTE_R1Z_DPG.W","PET.EMD_EPD2D_PTE_R20_DPG.W",
                    "PET.EMD_EPD2D_PTE_R30_DPG.W","PET.EMD_EPD2D_PTE_R40_DPG.W","PET.EMD_EPD2D_PTE_R50_DPG.W ",
                    "PET.EMD_EPD2D_PTE_R5XCA_DPG.W","PET.EMD_EPD2D_PTE_SCA_DPG.W")
+    
+    if (input$refresh!=0 | is.null(path)){
     FUEL_DATA<-vector("list",length(fuel_choice))
     fuel_names<-character(length(fuel_choice))
     for (beta in 1:length(fuel_choice)){
-    if (input$refresh!=0 | is.null(path)){Json_fuel<-EPA_API(series=fuel_choice[beta],key="A9BCC61DA44BA0C0ECA4A42D622D7D44")}
+    Json_fuel<-EPA_API(series=fuel_choice[beta],key="A9BCC61DA44BA0C0ECA4A42D622D7D44")
     date<-c()
     fuel<-c()
     for (i in 1:length(Json_fuel$series[[1]][['data']])){
@@ -874,7 +879,9 @@ shinyServer(function(input, output, session) { # server is defined within these 
     }
     if (beta==1){colnames(FUEL)[2]<-Json_fuel$series[[1]][['name']]}
     FUEL_DATA[[beta]]<-FUEL
-    }
+    }}
+    
+    
     
     series<-api_readtable
     if (input$refresh!=0 | is.null(path)){CENSUS<-CENSUS_API(series=series,key="cf2bc020b12d020f8ee3155f74198a21dc585845")}
@@ -931,7 +938,7 @@ shinyServer(function(input, output, session) { # server is defined within these 
     
     #DATA_FILL_I<-loess_fill(DATA_I,t_index=1,span=c(10:1/10),folds=5)
     DATA_FILL_I<-PIECE_fill(DATA_I,t_index=1)
-    list(DATA_I=DATA_I,DATA_FILL_I=DATA_FILL_I,CENSUS=CENSUS,Json_fuel=Json_fuel,path=path,api_readtable=api_readtable)
+    list(DATA_I=DATA_I,DATA_FILL_I=DATA_FILL_I,CENSUS=CENSUS,FUEL_DATA=FUEL_DATA,path=path,api_readtable=api_readtable)
   })
   
   output$API_SAVE<-downloadHandler(
