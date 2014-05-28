@@ -215,7 +215,6 @@ shinyServer(function(input, output, session) { # server is defined within these 
   })
   
   output$l1_stop_ct<-renderUI({
-    browser()
     dat<-FIL()$Stop_Count
     dest<-unique(dat)
     dest<-sort(dest)###this removes NA's from the list so we need to add an option in the list for NA's
