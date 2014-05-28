@@ -1864,7 +1864,7 @@ shinyServer(function(input, output, session) { # server is defined within these 
       
       ###Look at GAM error structure###
       fit<-VAR(error.stream,ic=c("SC"),lag.max=10,type="const")
-      fit<-restrict(fit,method="ser",thresh=0.2)
+      fit<-restrict(fit,method="ser",thresh=0.02)
       predicted_vals=predict(fit,n.ahead=backcast_ahead)
       
       
