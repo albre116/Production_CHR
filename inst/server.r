@@ -215,15 +215,16 @@ shinyServer(function(input, output, session) { # server is defined within these 
   })
   
   output$l1_stop_ct<-renderUI({
+    browser()
     dat<-FIL()$Stop_Count
     dest<-unique(dat)
     dest<-sort(dest)###this removes NA's from the list so we need to add an option in the list for NA's
     comp <- c(as.character(dest), "NA")
     dest<-c(dest,NA)
     unselected <- c()
-    if (!is.null(Read_Settings()[["l1_stop_count"]])){
-      unselected <- dest[which(!comp%in%Read_Settings()[["l1_stop_count"]][["right"]])]
-      dest <- dest[which(comp%in%Read_Settings()[["l1_stop_count"]][["right"]])]}
+    if (!is.null(Read_Settings()[["l1_stop_ct"]])){
+      unselected <- dest[which(!comp%in%Read_Settings()[["l1_stop_ct"]][["right"]])]
+      dest <- dest[which(comp%in%Read_Settings()[["l1_stop_ct"]][["right"]])]}
     chooserInput("l1_stop_ct", "Available", "Selected",
                  unselected, dest, size = 10, multiple = TRUE
     )
@@ -339,9 +340,9 @@ shinyServer(function(input, output, session) { # server is defined within these 
     comp <- c(as.character(dest), "NA")
     dest<-c(dest,NA)
     unselected <- c()
-    if (!is.null(Read_Settings()[["l2_stop_count"]])){
-      unselected <- dest[which(!comp%in%Read_Settings()[["l2_stop_count"]][["right"]])]
-      dest <- dest[which(comp%in%Read_Settings()[["l2_stop_count"]][["right"]])]}
+    if (!is.null(Read_Settings()[["l2_stop_ct"]])){
+      unselected <- dest[which(!comp%in%Read_Settings()[["l2_stop_ct"]][["right"]])]
+      dest <- dest[which(comp%in%Read_Settings()[["l2_stop_ct"]][["right"]])]}
     chooserInput("l2_stop_ct", "Available", "Selected",
                  unselected, dest, size = 10, multiple = TRUE
     )
@@ -457,9 +458,9 @@ shinyServer(function(input, output, session) { # server is defined within these 
     comp <- c(as.character(dest), "NA")
     dest<-c(dest,NA)
     unselected <- c()
-    if (!is.null(Read_Settings()[["l3_stop_count"]])){
-      unselected <- dest[which(!comp%in%Read_Settings()[["l3_stop_count"]][["right"]])]
-      dest <- dest[which(comp%in%Read_Settings()[["l3_stop_count"]][["right"]])]}
+    if (!is.null(Read_Settings()[["l3_stop_ct"]])){
+      unselected <- dest[which(!comp%in%Read_Settings()[["l3_stop_ct"]][["right"]])]
+      dest <- dest[which(comp%in%Read_Settings()[["l3_stop_ct"]][["right"]])]}
     chooserInput("l3_stop_ct", "Available", "Selected",
                  unselected, dest, size = 10, multiple = TRUE
     )
@@ -750,6 +751,9 @@ shinyServer(function(input, output, session) { # server is defined within these 
     datatrans[!idxx,3] <- smooth_vals[[2]][!idxx]
     datatrans[!idxx,2] <- vol_vals[[2]][!idxx]
     matrix_preds<-data.frame("Date"=datevect[!idxx],"RPM"=round(datatrans[!idxx,3],2),"Volume"=round(datatrans[!idxx,2],2))
+    if (!is.null(Read_Settings()[["matrix_volume"]])){
+      matrix_preds<-data.frame(Read_Settings()[["matrix_volume"]])
+    }
     matrixCustom('matrix_volume', 'Future Values For Quote Construction',matrix_preds)
     ###you can access these values with input$matrix_volume as the variable anywhere in the server side file
     
@@ -859,17 +863,17 @@ shinyServer(function(input, output, session) { # server is defined within these 
     if (input$refresh!=0 | is.null(path)){Json_fuel<-EPA_API(series=fuel_choice[beta],key="A9BCC61DA44BA0C0ECA4A42D622D7D44")}
     date<-c()
     fuel<-c()
-    for (i in 1:length(Json_fuel$series[[1]][[15]])){
-      date<-c(date,Json_fuel$series[[1]][[15]][[i]][[1]])
-      fuel<-c(fuel,Json_fuel$series[[1]][[15]][[i]][[2]])
+    for (i in 1:length(Json_fuel$series[[1]][['data']])){
+      date<-c(date,Json_fuel$series[[1]][['data']][[i]][[1]])
+      fuel<-c(fuel,Json_fuel$series[[1]][['data']][[i]][[2]])
     }
     FUEL<-data.frame(Date=as.Date(date,format="%Y%m%d"),X=as.numeric(fuel))
     if (beta>=2){
       indx<-FUEL_DATA[[1]][,1] %in% FUEL[,1] 
       FUEL[,2]<-FUEL[,2]-FUEL_DATA[[1]][indx,2]
-      colnames(FUEL)[2]<-paste("Diff_from_us_avg",Json_fuel$series[[1]][[2]],sep="_")
+      colnames(FUEL)[2]<-paste("Diff_from_us_avg",Json_fuel$series[[1]][['name']],sep="_")
     }
-    if (beta==1){colnames(FUEL)[2]<-Json_fuel$series[[1]][[2]]}
+    if (beta==1){colnames(FUEL)[2]<-Json_fuel$series[[1]][['name']]}
     FUEL_DATA[[beta]]<-FUEL
     }
     
@@ -1411,6 +1415,9 @@ shinyServer(function(input, output, session) { # server is defined within these 
   
   output$matrix_values <- renderUI({
     matrix_preds<-data.frame("Future Date"=mod1()[['pull_time_ahead']],"Future Values"=round(mod1()[['pull_future']],2))
+    if (!is.null(Read_Settings()[["table_values"]])){
+      matrix_preds<-data.frame(Read_Settings()[["table_values"]])
+    }
     matrixCustom('table_values', 'Future Values Needed For Prediction',matrix_preds)
     ###you can access these values with input$table_values as the variable anywhere in the server side file
     
