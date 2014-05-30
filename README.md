@@ -17,5 +17,5 @@ TO RUN AFTER INSTALLATION:
 To run enter the following commands into the R-console window:
 library(devtools)
 library(shiny)
-install_github("albre116/Production_CHR",auth_token="90bf45bf2cb65eca874c264193c3e3536e823d8a")
+install_github("albre116/Production_CHR",auth_token="485fbfa16cde833aaa1b567fb1b99ea3d7c5f2ec")
 shiny::runApp(system.file(package='CHRproduction'))

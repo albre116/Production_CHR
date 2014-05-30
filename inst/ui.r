@@ -102,7 +102,7 @@ shinyUI(fluidPage(
                                conditionalPanel(condition = "input.navbar1=='panel4' && input.navbar14=='bcst_pred'", uiOutput("backcast_length_slider")),
                                conditionalPanel(condition = "input.navbar1=='panel4' && input.navbar14=='vol_quote'", uiOutput("matrix_volume"))
                   )),
-           column(9,navbarPage(title = "Analysis Evaluation",id = "navbar1",
+           column(9,navbarPage(title = "Version 1.0",id = "navbar1",
                                tabPanel("Dataset Selection", value = "panel1",
                                         navbarPage(title = "", id = "navbar11",
                                                    tabPanel("Raw Data",dataTableOutput("raw_data"),value="raw_data"),
