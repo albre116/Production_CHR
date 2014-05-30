@@ -94,6 +94,7 @@ shinyUI(fluidPage(
                                conditionalPanel(condition = "input.navbar1=='panel3' && input.navbar13=='var_import' || input.navbar13=='cond_effect'", uiOutput("predictors_checkgroup")),
                                conditionalPanel(condition = "input.navbar1=='panel3' && input.navbar13=='GAM_effects'", downloadButton("effects","Download Conditional Effects (CSV)")),
                                conditionalPanel(condition = "input.navbar1=='panel4' && input.navbar14=='preds'", uiOutput("CI_percentile")),
+                               conditionalPanel(condition = "input.navbar1=='panel4' && input.navbar14=='pred_fwd' | input.navbar14=='preds'", uiOutput("carry_forward")),
                                conditionalPanel(condition = "input.navbar1=='panel4' && input.navbar14=='pred_fwd' | input.navbar14=='preds'", uiOutput("matrix_values")),
                                conditionalPanel(condition = "input.navbar1=='panel4' && input.navbar14=='gam_pred'", downloadButton("predictions_GAM","Download GAM Predictions (CSV)")),
                                conditionalPanel(condition = "input.navbar1=='panel4' && input.navbar14=='vol_quote'", uiOutput("quote_date")),

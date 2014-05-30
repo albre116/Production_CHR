@@ -786,6 +786,7 @@ shinyServer(function(input, output, session) { # server is defined within these 
     updateCheckboxInput(session, inputId="interaction", value = Read_Settings()[["interaction"]])
     updateCheckboxInput(session, inputId="seasonality", value = Read_Settings()[["seasonality"]])
     updateCheckboxInput(session, inputId="linear", value = Read_Settings()[["linear"]])
+    updateCheckboxInput(session, inputId="carry_forward", value = Read_Settings()[["carry_forward"]])
     
     updateTextInput(session, inputId= "lane1_id", value = Read_Settings()[["lane1_id"]])
     updateTextInput(session, inputId= "lane2_id", value = Read_Settings()[["lane2_id"]])
@@ -1419,11 +1420,36 @@ shinyServer(function(input, output, session) { # server is defined within these 
     
   })
   
+  
+  output$carry_forward <- renderUI({
+    XX<-mod1()[['XX']]
+    run<-mod1()[['run']]
+    choice<-colnames(XX)[run[-1]]
+    
+
+    checkboxGroupInput(inputId = "carry_forward",
+                       label = "Carry Last Observation Forward?",
+                       choices = choice)
+  })
+  
+  
+  
   output$matrix_values <- renderUI({
     matrix_preds<-data.frame("Future Date"=mod1()[['pull_time_ahead']],"Future Values"=round(mod1()[['pull_future']],2))
+    
     if (!is.null(Read_Settings()[["table_values"]])){
       matrix_preds<-data.frame(Read_Settings()[["table_values"]])
     }
+    
+    if(!is.null(input$carry_forward)){###put in carry forward values here if selected
+      XX<-mod1()[['XX']]
+      idx<-input$carry_forward
+      NEW<-mod1()[['pull_future']]
+      NEW[,idx]<-XX[nrow(XX),idx]
+      matrix_preds<-data.frame("Future Date"=mod1()[['pull_time_ahead']],"Future Values"=round(NEW,2))
+    }
+      
+      
     matrixCustom('table_values', 'Future Values Needed For Prediction',matrix_preds)
     ###you can access these values with input$table_values as the variable anywhere in the server side file
     
