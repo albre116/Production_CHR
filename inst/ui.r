@@ -6,7 +6,7 @@ shinyUI(fluidPage(
   fluidRow(column(3,
                   sidebarPanel(width=12,
                                titlePanel(title="Inputs"),
-                               conditionalPanel(condition="input.navbar11=='raw_data'",    
+                               conditionalPanel(condition="input.navbar1=='panel1' & input.navbar11=='raw_data'",    
                                                 fileInput('file1', 'Choose CSV File',
                                                           accept=c('text/csv', 'text/comma-separated-values,text/plain', '.csv')),
                                                 tags$hr(),
@@ -24,13 +24,13 @@ shinyUI(fluidPage(
                                                 sliderInput("rand_samp","Random Sample of Data (%)",0,100,100,step=1),
                                                 selectInput("lanes_choice","Number of Lanes to Construct",c(1,2,3))
                                                 ),
-                               conditionalPanel(condition="input.navbar11=='data_load'",    
+                               conditionalPanel(condition="input.navbar1=='panel1' & input.navbar11=='data_load'",    
                                                 fileInput('settings_file', 'Load Previous Settings?',
                                                           accept=c('RData'))
                                ),
                                
                                
-                               conditionalPanel(condition="input.navbar11=='api_data'",    
+                               conditionalPanel(condition="input.navbar1=='panel1' & input.navbar11=='api_data'",    
                                                 fileInput('api_file', 'Choose API Data File (otherwise hit update)',
                                                           accept=c('RData')),
                                                 actionButton("refresh","Update API Data"),
@@ -40,7 +40,7 @@ shinyUI(fluidPage(
                                ),
                              
                                
-                               conditionalPanel(condition="input.navbar11=='outlier'",
+                               conditionalPanel(condition="input.navbar1=='panel1' & input.navbar11=='outlier'",
                                                 uiOutput("date"),
                                                 uiOutput("cost_lower"),
                                                 uiOutput("cost_upper"),
@@ -49,14 +49,14 @@ shinyUI(fluidPage(
                                                 uiOutput("RPM_lower"),
                                                 uiOutput("RPM_upper")
                                ),
-                               conditionalPanel(condition="input.navbar11=='lane_1_construct'",
+                               conditionalPanel(condition="input.navbar1=='panel1' & input.navbar11=='lane_1_construct'",
                                                 textInput("lane1_id","Name of Lane 1",value="Lane_1"),
                                                 h4("Select Stop Count"),
                                                 uiOutput("l1_stop_ct")
                                                 #h4("Select Lanes To Include"),
                                                 #uiOutput("l1_lane_desc")
                                ),
-                               conditionalPanel(condition="input.navbar11=='lane_2_construct'",
+                               conditionalPanel(condition="input.navbar1=='panel1' & input.navbar11=='lane_2_construct'",
                                                 textInput("lane2_id","Name of Lane 2",value="Lane_2"),
                                                 h4("Select Origin Zips"),
                                                 h4("Select Stop Count"),
@@ -65,7 +65,7 @@ shinyUI(fluidPage(
                                                 #uiOutput("l2_lane_desc")
                                                 
                                ),
-                               conditionalPanel(condition="input.navbar11=='lane_3_construct'",
+                               conditionalPanel(condition="input.navbar1=='panel1' & input.navbar11=='lane_3_construct'",
                                                 textInput("lane3_id","Name of Lane 3",value="Lane_3"),
                                                 h4("Select Stop Count"),
                                                 uiOutput("l3_stop_ct")
@@ -85,17 +85,17 @@ shinyUI(fluidPage(
                                conditionalPanel(condition = "input.navbar1=='panel3'|| input.navbar1=='panel4'", uiOutput("max_model_slider")),
                                conditionalPanel(condition = "input.navbar1=='panel3'|| input.navbar1=='panel4'", uiOutput("gamma_numeric")),
                                conditionalPanel(condition = "input.navbar1=='panel3'|| input.navbar1=='panel4'", uiOutput("backcast_ahead_slider")),
-                               conditionalPanel(condition = "input.navbar1=='panel3' && input.navbar13=='var_import' || input.navbar13=='cond_effect'", uiOutput("pick_numeric")),
-                               conditionalPanel(condition = "input.navbar1=='panel3' && input.navbar13=='var_import' || input.navbar13=='cond_effect'", uiOutput("linear")),
-                               conditionalPanel(condition = "input.navbar1=='panel3' && input.navbar13=='var_import' || input.navbar13=='cond_effect'", uiOutput("seasonality")),
-                               conditionalPanel(condition = "input.navbar1=='panel3' && input.navbar13=='var_import' || input.navbar13=='cond_effect'", uiOutput("interaction_check")),
-                               conditionalPanel(condition = "input.navbar1=='panel3' && input.navbar13=='var_import' || input.navbar13=='cond_effect'", uiOutput("interaction_split")),
-                               conditionalPanel(condition = "input.navbar1=='panel3' && input.navbar13=='var_import' || input.navbar13=='cond_effect'", uiOutput("response_radio")),
-                               conditionalPanel(condition = "input.navbar1=='panel3' && input.navbar13=='var_import' || input.navbar13=='cond_effect'", uiOutput("predictors_checkgroup")),
+                               conditionalPanel(condition = "input.navbar1=='panel3' && (input.navbar13=='var_import' | input.navbar13=='cond_effect')", uiOutput("pick_numeric")),
+                               conditionalPanel(condition = "input.navbar1=='panel3' && (input.navbar13=='var_import' | input.navbar13=='cond_effect')", uiOutput("linear")),
+                               conditionalPanel(condition = "input.navbar1=='panel3' && (input.navbar13=='var_import' | input.navbar13=='cond_effect')", uiOutput("seasonality")),
+                               conditionalPanel(condition = "input.navbar1=='panel3' && (input.navbar13=='var_import' | input.navbar13=='cond_effect')", uiOutput("interaction_check")),
+                               conditionalPanel(condition = "input.navbar1=='panel3' && (input.navbar13=='var_import' | input.navbar13=='cond_effect')", uiOutput("interaction_split")),
+                               conditionalPanel(condition = "input.navbar1=='panel3' && (input.navbar13=='var_import' | input.navbar13=='cond_effect')", uiOutput("response_radio")),
+                               conditionalPanel(condition = "input.navbar1=='panel3' && (input.navbar13=='var_import' | input.navbar13=='cond_effect')", uiOutput("predictors_checkgroup")),
                                conditionalPanel(condition = "input.navbar1=='panel3' && input.navbar13=='GAM_effects'", downloadButton("effects","Download Conditional Effects (CSV)")),
                                conditionalPanel(condition = "input.navbar1=='panel4' && input.navbar14=='preds'", uiOutput("CI_percentile")),
-                               conditionalPanel(condition = "input.navbar1=='panel4' && input.navbar14=='pred_fwd' | input.navbar14=='preds'", uiOutput("carry_forward")),
-                               conditionalPanel(condition = "input.navbar1=='panel4' && input.navbar14=='pred_fwd' | input.navbar14=='preds'", uiOutput("matrix_values")),
+                               conditionalPanel(condition = "input.navbar1=='panel4' && (input.navbar14=='pred_fwd' | input.navbar14=='preds')", uiOutput("carry_forward")),
+                               conditionalPanel(condition = "input.navbar1=='panel4' && (input.navbar14=='pred_fwd' | input.navbar14=='preds')", uiOutput("matrix_values")),
                                conditionalPanel(condition = "input.navbar1=='panel4' && input.navbar14=='gam_pred'", downloadButton("predictions_GAM","Download GAM Predictions (CSV)")),
                                conditionalPanel(condition = "input.navbar1=='panel4' && input.navbar14=='vol_quote'", uiOutput("quote_date")),
                                conditionalPanel(condition = "input.navbar1=='panel4' && input.navbar14=='vol_quote'", uiOutput("volume_checkgroup")),
