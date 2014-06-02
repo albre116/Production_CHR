@@ -939,6 +939,7 @@ shinyServer(function(input, output, session) { # server is defined within these 
     
     #DATA_FILL_I<-loess_fill(DATA_I,t_index=1,span=c(10:1/10),folds=5)
     DATA_FILL_I<-PIECE_fill(DATA_I,t_index=1)
+    
     list(DATA_I=DATA_I,DATA_FILL_I=DATA_FILL_I,CENSUS=CENSUS,FUEL_DATA=FUEL_DATA,path=path,api_readtable=api_readtable)
   })
   
@@ -1102,6 +1103,7 @@ shinyServer(function(input, output, session) { # server is defined within these 
     if (method=="loess"){
       #DATA_FILL<-loess_fill(DATA,t_index=1,span=c(10:1/10),folds=5)
       DATA_FILL<-PIECE_fill(DATA,t_index=1)###use piecewise linear to preserve convex hull
+      
       } else{
         DATA_FILL<-GAM_fill(DATA,t_index=1,gamma=0.5)}
     
@@ -1583,14 +1585,14 @@ shinyServer(function(input, output, session) { # server is defined within these 
     smooth_UCL<-numeric(length(series))
     smooth_UCL[1:length(smooth_UCL)]<-NA
     smooth_UCL[series %in% obs_dates]<-smooth_data[[4]]
-    
     smooth_data<-data.frame(date=series,values=smooth_values,LCL=smooth_LCL,UCL=smooth_UCL,group=smooth_group)
     transition<-floor(mean(c(max(which(smooth_data[[5]]=="observed")),min(which(smooth_data[[5]]=="predicted")))))
     smooth_data[[5]][1:transition]<-"observed"
     smooth_data[[5]][(transition+1):nrow(smooth_data)]<-"predicted"
     input_dat<-list(date=smooth_data[,1],data=smooth_data[,2,drop=F])
-    ttmmpp<-PIECE_fill(input_dat,t_index=1)
-    smooth_data[2]<-ttmmpp[[2]]
+    #ttmmpp<-PIECE_fill(input_dat,t_index=1)
+    #smooth_data[2]<-ttmmpp[[2]]
+    smooth_data[2] <- na.approx(smooth_data[2], na.rm = FALSE)
 
     
     
@@ -1598,20 +1600,19 @@ shinyServer(function(input, output, session) { # server is defined within these 
     band<-smooth_data[[4]][work]-smooth_data[[2]][work]
     ttime<-smooth_data[[1]][work]
     non_empty<-which(!is.na(band))
-    for (g in 2:length(non_empty)){###piecewise linear fit
-      ff<-(non_empty[g-1]+1):(non_empty[g]-1)
-      dat<-data.frame(y=band[non_empty[(g-1):g]],x=ttime[non_empty[(g-1):g]])
-      qf<-lm(y~x,data=dat)
-      band[ff]<-predict(qf,newdata=data.frame(x=ttime[ff]))
-    }
+#     for (g in 2:length(non_empty)){###piecewise linear fit
+#       ff<-(non_empty[g-1]+1):(non_empty[g]-1)
+#       dat<-data.frame(y=band[non_empty[(g-1):g]],x=ttime[non_empty[(g-1):g]])
+#       qf<-lm(y~x,data=dat)
+#       band[ff]<-predict(qf,newdata=data.frame(x=ttime[ff]))
+#     }
+    band <- na.approx(band, na.rm = FALSE)
     band[1:(non_empty[1]-1)]<-band[non_empty[1]]
     smooth_data[[3]][work]<-smooth_data[[2]][work]-band
     smooth_data[[4]][work]<-smooth_data[[2]][work]+band
     
     ###set CI limits in names
     colnames(smooth_data)[3:4]<-c(paste0("LCL_",CI_pct),paste0("UCL_",CI_pct))
-    
-    
     
     
     ##########################################################################
@@ -1720,14 +1721,13 @@ shinyServer(function(input, output, session) { # server is defined within these 
     smooth_values[series %in% obs_dates]<-smooth_data[[2]]
     smooth_group<-factor(rep(NA,length(series)),levels=levels(smooth_data[[3]]))
     smooth_group[series %in% obs_dates]<-smooth_data[[3]]
-    
     smooth_data<-data.frame(date=series,values=smooth_values,group=smooth_group)
     transition<-floor(mean(c(max(which(smooth_data[[3]]=="observed")),min(which(smooth_data[[3]]=="predicted")))))
     smooth_data[[3]][1:transition]<-"observed"
     smooth_data[[3]][(transition+1):nrow(smooth_data)]<-"predicted"
-    input_dat<-list(date=smooth_data[,1],data=smooth_data[,2,drop=F])
-    ttmmpp<-PIECE_fill(input_dat,t_index=1)
-    smooth_data[2]<-ttmmpp[[2]]
+#     input_dat<-list(date=smooth_data[,1],data=smooth_data[,2,drop=F])
+#     ttmmpp<-PIECE_fill(input_dat,t_index=1)
+    smooth_data[2]<-na.approx(smooth_data[2], na.rm = FALSE)
     
     return(smooth_data)
     
@@ -1934,6 +1934,24 @@ shinyServer(function(input, output, session) { # server is defined within these 
     percent_error<-mean(percent_error[[1]])
     
     
+    
+    ################Linear interpolation of daily values ########################################
+    
+    smooth_data<-output_backcast
+    min<-as.POSIXlt(min(smooth_data[[1]]),origin="1970-01-01")
+    max<-as.POSIXlt(max(smooth_data[[1]]),origin="1970-01-01")+3.5*24*60*60
+    series<-min+(0:difftime(max,min,units="days"))*24*60*60
+    series<-as.Date(series,format="%Y-%m-%d")
+    obs_dates<-as.Date(as.POSIXlt(smooth_data[[1]],origin="1970-01-01")+ c(diff(smooth_data[[1]])/2,3.5)*24*60*60,format="%Y-%m-%d")
+    smooth_values<-numeric(length(series))
+    smooth_values[1:length(smooth_values)]<-NA
+    smooth_values[series %in% obs_dates]<-smooth_data[[2]]
+    smooth_data <- data.frame(date=series,matrix(nrow=length(series),ncol=ncol(output_backcast)-1))
+    colnames(smooth_data) <- colnames(output_backcast)
+    smooth_data[series %in%obs_dates,2:ncol(smooth_data)] <- output_backcast[,2:ncol(smooth_data)]
+    smooth_data[,2:ncol(smooth_data)] <- na.approx(smooth_data[,2:ncol(smooth_data)], na.rm = FALSE)
+    backcast_daily <- smooth_data
+    
     #write.csv(output_backcast,file=paste(TARGET_NAME,backcast_ahead," Weeks_Ahead_Backcasting.csv")) 
     ########end backcasting source
     
@@ -1945,7 +1963,7 @@ shinyServer(function(input, output, session) { # server is defined within these 
     
     
     tst<-structure(list("output_backcast"=output_backcast,
-                        "percent_error"=percent_error,"R"=R))
+                        "percent_error"=percent_error,"R"=R,"backcast_daily"=backcast_daily))
     
   })
   
@@ -2392,9 +2410,10 @@ output$vol_quote<-renderDataTable({
   })
   
   output$Backcast_graph <- renderChart({
-    output_backcast<-mod2()[["output_backcast"]]
+    backcast_daily<-mod2()[["backcast_daily"]]
     percent_error<-mod2()[["percent_error"]]
     R<-mod2()[["R"]]
+    smooth_vals<-mod()[["smooth_data"]]
     
     ZZ=mod()[['ZZ']]
     dateZZ=mod()[['dateZZ']]
@@ -2413,10 +2432,11 @@ output$vol_quote<-renderDataTable({
 #     title(sub=paste("Average Prediction Error=",round(percent_error,digits=4)*100,"%; R-Squared=",round(R,2),sep=""))
 #     print(theGraph)
     
-    datatrans <- matrix(NA, nrow=length(dateZZ)+length(output_backcast[[1]]),ncol = 2)
-    datatrans[1:length(dateZZ),1] <- ZZ[[response]]
-    datatrans[(length(dateZZ)+1):nrow(datatrans),2] <- output_backcast[[2]]
-    datevect <- c(dateZZ,output_backcast[[1]])
+    observed <- smooth_vals[which(smooth_vals[,5] %in% "observed"),1:2]
+    datatrans <- matrix(NA, nrow=nrow(observed)+nrow(backcast_daily),ncol = 2)
+    datatrans[1:nrow(observed),1] <- observed[,2]
+    datatrans[(nrow(observed)+1):nrow(datatrans),2] <- backcast_daily[,2]
+    datevect <- c(observed[,1],backcast_daily[,1])
     datatrans <- data.frame(datevect,datatrans)
     
     colnames(datatrans) <- c("date","observed","predicted")
