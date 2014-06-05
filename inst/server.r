@@ -709,15 +709,27 @@ shinyServer(function(input, output, session) { # server is defined within these 
     )
   })
   
-  output$CI_percentile<- renderUI({
-    out1 <- sliderInput(inputId = "CI_percentile",
-                        label = "Percentile for Confidence Inerval (%)",
+  output$LCL_percentile<- renderUI({
+    out1 <- sliderInput(inputId = "LCL_percentile",
+                        label = "Percentile for Lower Confidence Inerval (%)",
                         min = 60,
                         max = 99,
                         value = 95,
                         step = 1                
     )
-    if (!is.null(Read_Settings()[["CI_percentile"]])) updateSliderInput(session, inputId= "CI_percentile", value = Read_Settings()[["CI_percentile"]])
+    if (!is.null(Read_Settings()[["LCL_percentile"]])) updateSliderInput(session, inputId= "LCL_percentile", value = Read_Settings()[["LCL_percentile"]])
+    return(out1)
+  })
+  
+  output$UCL_percentile<- renderUI({
+    out1 <- sliderInput(inputId = "UCL_percentile",
+                        label = "Percentile for Upper Confidence Inerval (%)",
+                        min = 60,
+                        max = 99,
+                        value = 95,
+                        step = 1                
+    )
+    if (!is.null(Read_Settings()[["UCL_percentile"]])) updateSliderInput(session, inputId= "UCL_percentile", value = Read_Settings()[["UCL_percentile"]])
     return(out1)
   })
   
@@ -1488,10 +1500,13 @@ shinyServer(function(input, output, session) { # server is defined within these 
     gamma=mod1()[['gamma']]
     table_values=input$table_values
     interaction_split_day=input$interaction_split##cutpoint for interaction
-    CI_pct<-input$CI_percentile
-    CI_Z_score=abs(qnorm((1-CI_pct/100)/2))
-
+#     CI_pct<-input$CI_percentile
+#     CI_Z_score=abs(qnorm((1-CI_pct/100)/2))
     
+    LCL_pct <- input$LCL_percentile
+    UCL_pct <- input$UCL_percentile
+    CI_Z_score_LCL=abs(qnorm((1-LCL_pct/100)/2))
+    CI_Z_score_UCL=abs(qnorm((1-UCL_pct/100)/2))
     
     #########################################################################
     ###used to be mod_source.r
@@ -1556,8 +1571,8 @@ shinyServer(function(input, output, session) { # server is defined within these 
     GAM_DATA<-cbind(days,"date"=as.numeric(time_ahead),season,FUTURE)
     predicted<-predict(fit_1,newdata=GAM_DATA,se.fit=T,pred.var=0)
     predicted_adj<-as.numeric(predicted$fit)+mean_delta
-    lcl=predicted_adj-CI_Z_score*sqrt((lcl_delta/1.96)^2+(as.numeric(predicted$se.fit))^2)
-    ucl=predicted_adj+CI_Z_score*sqrt((lcl_delta/1.96)^2+(as.numeric(predicted$se.fit))^2)
+    lcl=predicted_adj-CI_Z_score_LCL*sqrt((lcl_delta/1.96)^2+(as.numeric(predicted$se.fit))^2)
+    ucl=predicted_adj+CI_Z_score_UCL*sqrt((ucl_delta/1.96)^2+(as.numeric(predicted$se.fit))^2)
     char<-paste("GAM_Predictions_",ls(x[response]),sep="")
     tmpcmd=paste("GAM_predictions=data.frame(time_ahead,",char,"=predicted_adj,lcl,ucl,FUTURE)",sep="")
     eval(parse(text=tmpcmd))
@@ -1593,26 +1608,26 @@ shinyServer(function(input, output, session) { # server is defined within these 
     #ttmmpp<-PIECE_fill(input_dat,t_index=1)
     #smooth_data[2]<-ttmmpp[[2]]
     smooth_data[2] <- na.approx(smooth_data[2], na.rm = FALSE)
+    smooth_data[3] <- na.approx(smooth_data[3], na.rm = FALSE)
+    smooth_data[4] <- na.approx(smooth_data[4], na.rm = FALSE)
 
-    
-    
-    work<-smooth_data[[5]]=="predicted"
-    band<-smooth_data[[4]][work]-smooth_data[[2]][work]
-    ttime<-smooth_data[[1]][work]
-    non_empty<-which(!is.na(band))
-#     for (g in 2:length(non_empty)){###piecewise linear fit
-#       ff<-(non_empty[g-1]+1):(non_empty[g]-1)
-#       dat<-data.frame(y=band[non_empty[(g-1):g]],x=ttime[non_empty[(g-1):g]])
-#       qf<-lm(y~x,data=dat)
-#       band[ff]<-predict(qf,newdata=data.frame(x=ttime[ff]))
-#     }
-    band <- na.approx(band, na.rm = FALSE)
-    band[1:(non_empty[1]-1)]<-band[non_empty[1]]
-    smooth_data[[3]][work]<-smooth_data[[2]][work]-band
-    smooth_data[[4]][work]<-smooth_data[[2]][work]+band
+#     work<-smooth_data[[5]]=="predicted"
+#     band<-smooth_data[[4]][work]-smooth_data[[2]][work]
+#     ttime<-smooth_data[[1]][work]
+#     non_empty<-which(!is.na(band))
+# #     for (g in 2:length(non_empty)){###piecewise linear fit
+# #       ff<-(non_empty[g-1]+1):(non_empty[g]-1)
+# #       dat<-data.frame(y=band[non_empty[(g-1):g]],x=ttime[non_empty[(g-1):g]])
+# #       qf<-lm(y~x,data=dat)
+# #       band[ff]<-predict(qf,newdata=data.frame(x=ttime[ff]))
+# #     }
+#     band <- na.approx(band, na.rm = FALSE)
+#     band[1:(non_empty[1]-1)]<-band[non_empty[1]]
+#     smooth_data[[3]][work]<-smooth_data[[2]][work]-band
+#     smooth_data[[4]][work]<-smooth_data[[2]][work]+band
     
     ###set CI limits in names
-    colnames(smooth_data)[3:4]<-c(paste0("LCL_",CI_pct),paste0("UCL_",CI_pct))
+    colnames(smooth_data)[3:4]<-c(paste0("LCL_",LCL_pct),paste0("UCL_",UCL_pct))
     
     
     ##########################################################################
@@ -1669,10 +1684,17 @@ shinyServer(function(input, output, session) { # server is defined within these 
     consider=mod1()[['consider']]
     interaction=mod1()[['interaction']]
     gamma=mod1()[['gamma']]
-  
+
+    ############### Resume work here ##############################
+    
+#     LCL_pct <- input$LCL_percentile
+#     UCL_pct <- input$UCL_percentile
+#     CI_Z_score_LCL=abs(qnorm((1-LCL_pct/100)/2))
+#     CI_Z_score_UCL=abs(qnorm((1-UCL_pct/100)/2))
     
     ####identify volume lane
     vol_idx<-which(colnames(x) %in% input$volume)
+    
     
     ####predict future lane volume
     method_pred="Loess" ###set prediciton method between gam and loess
@@ -1704,8 +1726,6 @@ shinyServer(function(input, output, session) { # server is defined within these 
     }
     pull_future<-FUTURE
     pull_time_ahead<-time_ahead
-    
-    
     
 
     #####daily smoothing of lane volume####
@@ -2267,24 +2287,44 @@ output$quote_value<- renderChart({
   smooth_vals<-mod()[["smooth_data"]]
   vol_vals<-vol_integrator()
   datevect <- smooth_vals[[1]]
-  idx<-datevect>=input$quote_date[1] & datevect<=input$quote_date[2]
+  seldate<-datevect>=input$quote_date[1] & datevect<=input$quote_date[2]
   idxx<-smooth_vals[[5]]=="observed"
   
+  datatrans <- matrix(NA,nrow=nrow(smooth_vals),ncol = 4)
+  idx<-smooth_vals[[5]]=="observed"
   
-  datatrans <- matrix(NA,nrow=nrow(smooth_vals),ncol = 2)
-  datatrans[idxx,1] <- smooth_vals[[2]][idxx]
-  #datatrans[idxx,2] <- vol_vals[[2]][idxx]
-  datatrans[!idxx,2] <- as.numeric(input$matrix_volume[,2])
-  #datatrans[!idxx,4] <- vol_vals[[2]][!idxx]
-  datevect <- smooth_vals[[1]]
+  datatrans[idx,1] <- smooth_vals[[2]][idx]
+  datatrans[!idx,2] <- smooth_vals[[2]][!idx]
+  datatrans[!idx,3] <- smooth_vals[[3]][!idx]
+  datatrans[!idx,4] <- smooth_vals[[4]][!idx]
+  #datevect <- smooth_vals[[1]]
   datatrans <- data.frame(datevect,datatrans)
-  rpm <- smooth_vals[[2]][idx]
-  volume <- vol_vals[[2]][idx]
-  quote<-round(mean(rpm,na.rm=T),2)
-  colnames(datatrans) <- c("date","Rate_observed","Rate_predicted")
+  
+  
+  CI_labs<-colnames(smooth_vals)[3:4]
+  colnames(datatrans) <- c("date","observed","predicted",CI_labs)
   datatrans <- reshape2::melt(datatrans,id= 'date', na.rm = TRUE)
   datatrans[,1] <- as.numeric(as.POSIXct((as.numeric(datatrans[,1])*1000*24*60*60), origin = "1970-01-01"))
-  theGraph <- hPlot(value ~ date, group = 'variable', data = datatrans, type = 'line', title = paste("Average Rate Per Mile:$",quote,sep=""))
+  
+  
+#   datatrans <- matrix(NA,nrow=nrow(smooth_vals),ncol = 2)
+#   datatrans[idxx,1] <- smooth_vals[[2]][idxx]
+#   #datatrans[idxx,2] <- vol_vals[[2]][idxx]
+#   datatrans[!idxx,2] <- as.numeric(input$matrix_volume[,2])
+#   #datatrans[!idxx,4] <- vol_vals[[2]][!idxx]
+#   datevect <- smooth_vals[[1]]
+#   datatrans <- data.frame(datevect,datatrans)
+rpm <- smooth_vals[[2]][seldate]
+volume <- vol_vals[[2]][seldate]
+quote<-round(mean(rpm,na.rm=T),2)
+quoteLCL <- round(mean(smooth_vals[[3]][seldate],na.rm=T),2)
+quoteUCL <- round(mean(smooth_vals[[4]][seldate],na.rm=T),2)  
+
+
+#   colnames(datatrans) <- c("date","Rate_observed","Rate_predicted")
+#   datatrans <- reshape2::melt(datatrans,id= 'date', na.rm = TRUE)
+#   datatrans[,1] <- as.numeric(as.POSIXct((as.numeric(datatrans[,1])*1000*24*60*60), origin = "1970-01-01"))
+  theGraph <- hPlot(value ~ date, group = 'variable', data = datatrans, type = 'line', title = paste("Average Rate Per Mile:$",quote, "<br>",CI_labs[1], ":$", quoteLCL, ", ", CI_labs[2], ":$", quoteUCL, sep=""), subtitle = "")
   theGraph$chart(zoomType = "x")
   min_band<-as.numeric(as.POSIXct((as.numeric(input$quote_date[1])*1000*24*60*60), origin = "1970-01-01"))
   max_band<-as.numeric(as.POSIXct((as.numeric(input$quote_date[2])*1000*24*60*60), origin = "1970-01-01"))

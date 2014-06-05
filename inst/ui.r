@@ -93,7 +93,8 @@ shinyUI(fluidPage(
                                conditionalPanel(condition = "input.navbar1=='panel3' && (input.navbar13=='var_import' | input.navbar13=='cond_effect')", uiOutput("response_radio")),
                                conditionalPanel(condition = "input.navbar1=='panel3' && (input.navbar13=='var_import' | input.navbar13=='cond_effect')", uiOutput("predictors_checkgroup")),
                                conditionalPanel(condition = "input.navbar1=='panel3' && input.navbar13=='GAM_effects'", downloadButton("effects","Download Conditional Effects (CSV)")),
-                               conditionalPanel(condition = "input.navbar1=='panel4' && input.navbar14=='preds'", uiOutput("CI_percentile")),
+                               conditionalPanel(condition = "input.navbar1=='panel4' && (input.navbar14=='preds' || input.navbar14=='vol_quote')", uiOutput("LCL_percentile")),
+                               conditionalPanel(condition = "input.navbar1=='panel4' && (input.navbar14=='preds' || input.navbar14=='vol_quote')", uiOutput("UCL_percentile")),
                                conditionalPanel(condition = "input.navbar1=='panel4' && (input.navbar14=='pred_fwd' | input.navbar14=='preds')", uiOutput("carry_forward")),
                                conditionalPanel(condition = "input.navbar1=='panel4' && (input.navbar14=='pred_fwd' | input.navbar14=='preds')", uiOutput("matrix_values")),
                                conditionalPanel(condition = "input.navbar1=='panel4' && input.navbar14=='gam_pred'", downloadButton("predictions_GAM","Download GAM Predictions (CSV)")),
@@ -102,7 +103,7 @@ shinyUI(fluidPage(
                                conditionalPanel(condition = "input.navbar1=='panel4' && input.navbar14=='bcst_pred'", uiOutput("backcast_length_slider")),
                                conditionalPanel(condition = "input.navbar1=='panel4' && input.navbar14=='vol_quote'", uiOutput("matrix_volume"))
                   )),
-           column(9,navbarPage(title = "Version 1.0",id = "navbar1",
+           column(9,navbarPage(title = "Version 1.01",id = "navbar1",
                                tabPanel("Dataset Selection", value = "panel1",
                                         navbarPage(title = "", id = "navbar11",
                                                    tabPanel("Raw Data",dataTableOutput("raw_data"),value="raw_data"),
