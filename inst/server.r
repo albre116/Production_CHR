@@ -1468,7 +1468,7 @@ shinyServer(function(input, output, session) { # server is defined within these 
     
 
       # Initially will be empty
-    browser()
+
     if (!is.null(predclickval$graphID)){
       #replacename <- paste0("Future.Values.", predclickval$graphID)
       replacename<-predclickval$graphID
