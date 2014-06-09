@@ -1452,7 +1452,7 @@ shinyServer(function(input, output, session) { # server is defined within these 
 
   
   output$matrix_values <- renderUI({
-    matrix_preds<-data.frame("Future Date"=mod1()[['pull_time_ahead']],"Future Values"=round(mod1()[['pull_future']],2))
+    matrix_preds<-data.frame("Future Date"=mod1()[['pull_time_ahead']],round(mod1()[['pull_future']],2))
     
     if (!is.null(Read_Settings()[["table_values"]])){
       matrix_preds<-data.frame(Read_Settings()[["table_values"]])
@@ -1463,17 +1463,18 @@ shinyServer(function(input, output, session) { # server is defined within these 
       idx<-input$carry_forward
       NEW<-mod1()[['pull_future']]
       NEW[,idx]<-XX[nrow(XX),idx]
-      matrix_preds<-data.frame("Future Date"=mod1()[['pull_time_ahead']],"Future Values"=round(NEW,2))
+      matrix_preds<-data.frame("Future Date"=mod1()[['pull_time_ahead']],round(NEW,2))
     }
     
 
       # Initially will be empty
+    browser()
     if (!is.null(predclickval$graphID)){
-      replacename <- paste0("Future.Values.", predclickval$graphID)
+      #replacename <- paste0("Future.Values.", predclickval$graphID)
+      replacename<-predclickval$graphID
       target<-predclickval$target
       value<-predclickval$value
       matrix_preds[[replacename]][target] <- value
-    
     }
 
 
