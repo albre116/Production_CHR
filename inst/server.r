@@ -1449,7 +1449,7 @@ shinyServer(function(input, output, session) { # server is defined within these 
                        choices = choice)
   })
   
-  
+
   
   output$matrix_values <- renderUI({
     matrix_preds<-data.frame("Future Date"=mod1()[['pull_time_ahead']],"Future Values"=round(mod1()[['pull_future']],2))
@@ -1465,21 +1465,21 @@ shinyServer(function(input, output, session) { # server is defined within these 
       NEW[,idx]<-XX[nrow(XX),idx]
       matrix_preds<-data.frame("Future Date"=mod1()[['pull_time_ahead']],"Future Values"=round(NEW,2))
     }
-    observe({
+    
+
       # Initially will be empty
-      
-      if (!is.null(predclickval$graphID)){
-        replacename <- paste0("Future.Values.", predclickval$graphID)
-        matrix_preds[[replacename]][predclickval$target] <- predclickval$value
-        
-      }
-      
-    })
-    browser()
-    bitch <- matrix_preds
+    if (!is.null(predclickval$graphID)){
+      replacename <- paste0("Future.Values.", predclickval$graphID)
+      target<-predclickval$target
+      value<-predclickval$value
+      matrix_preds[[replacename]][target] <- value
+    
+    }
+
+
     matrixCustom('table_values', 'Future Values Needed For Prediction',matrix_preds)
     ###you can access these values with input$table_values as the variable anywhere in the server side file
-    
+
   })
   
   
