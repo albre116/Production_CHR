@@ -180,7 +180,7 @@ shinyUI(fluidPage(
                                ),
                                tabPanel("Prediction", value = "panel4",
                                         navbarPage(title = "", id = "navbar14",
-                                                   tabPanel("Predictor Values", plotOutput("pred_fwd"), value="pred_fwd"),
+                                                   tabPanel("Predictor Values", uiOutput("pred_fwd"), value="pred_fwd"),
                                                    tabPanel("Model Predictions", showOutput("preds","highcharts"), value = "preds"),
                                                    tabPanel("Integrated Volume Quote",fluidPage(fluidRow(h3(textOutput("quote_final"))),fluidRow(column(6,showOutput("quote_value","highcharts")),
                                                                                                          column(6,showOutput("quote_volume","highcharts"))),

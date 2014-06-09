@@ -6,6 +6,9 @@ options(shiny.maxRequestSize=500*1024^2)###500 megabyte file upload limit set
 #################################
 shinyServer(function(input, output, session) { # server is defined within these parentheses
   
+  ######## click value reactive value for predictions graph set
+  predclickval <- reactiveValues(graphID = NULL, target = NULL, value = NULL)
+  
   
   # render UI input elements for use in UI wrapper - come back to this section to calculate length dynamically
   
@@ -1462,8 +1465,18 @@ shinyServer(function(input, output, session) { # server is defined within these 
       NEW[,idx]<-XX[nrow(XX),idx]
       matrix_preds<-data.frame("Future Date"=mod1()[['pull_time_ahead']],"Future Values"=round(NEW,2))
     }
+    observe({
+      # Initially will be empty
       
+      if (!is.null(predclickval$graphID)){
+        replacename <- paste0("Future.Values.", predclickval$graphID)
+        matrix_preds[[replacename]][predclickval$target] <- predclickval$value
+        
+      }
       
+    })
+    browser()
+    bitch <- matrix_preds
     matrixCustom('table_values', 'Future Values Needed For Prediction',matrix_preds)
     ###you can access these values with input$table_values as the variable anywhere in the server side file
     
@@ -1610,7 +1623,16 @@ shinyServer(function(input, output, session) { # server is defined within these 
     smooth_data[2] <- na.approx(smooth_data[2], na.rm = FALSE)
     smooth_data[3] <- na.approx(smooth_data[3], na.rm = FALSE)
     smooth_data[4] <- na.approx(smooth_data[4], na.rm = FALSE)
+    work<-smooth_data[[5]]=="predicted"
 
+##Carry first confidence interval difference prediction back to start of prediction dataset
+for (i in 3:4){
+      emptyvals <- which(is.na(smooth_data[[i]][work]))
+      firstfull <- emptyvals[length(emptyvals)] + 1 - length(smooth_data[[2]][work]) + length(work)
+      last_diff <- smooth_data[[i]][firstfull]-smooth_data[[2]][firstfull]
+      smooth_data[[i]][work][emptyvals] <- smooth_data[[2]][work][emptyvals] +last_diff
+      
+    }     
 #     work<-smooth_data[[5]]=="predicted"
 #     band<-smooth_data[[4]][work]-smooth_data[[2]][work]
 #     ttime<-smooth_data[[1]][work]
@@ -2189,25 +2211,88 @@ return(theGraph)
 
     
   })
-  
-  output$pred_fwd <- renderPlot({
-    tmp_dat<-mod()[["tmp_dat"]]
-    theGraph<-xyplot(values~plot_time|ind,group=plot_group,data=tmp_dat,scales=list(relation="free"),ylab=NULL,type=c("l","l"),
-                     lwd=5,pch=19,cex=0.01,col=c("gray","blue"),main="Observed and Predicted Values for Co-Variates",xlab="Date",
-                     distribute.type=TRUE)
-    print(theGraph)
 
-# tmp_dat[["plot_time"]] <- as.numeric(as.POSIXct((as.numeric(tmp_dat[["plot_time"]])*1000*24*60*60), origin = "1970-01-01"))
-# theGraph <- hPlot(values ~ plot_time, group = 'plot_group', data = tmp_dat, type = 'line', title = "Observed and Predicted Values for Co-Variates")
-# theGraph$yAxis(title = (list(text = NULL)))
-# theGraph$xAxis(type = 'datetime', labels = list(format = '{value:%Y-%m-%d}'), title = list(text = "Date"))
-# theGraph$chart(zoomType = "x")
-# theGraph$addParams(dom = 'pred_fwd')
-# 
-# return(theGraph)
-    print(theGraph)
+output$pred_fwd <- renderUI({
+  tmp_dat<-mod()[["tmp_dat"]]
+  
+  # Call renderPlot for each one. Plots are only actually generated when they
+  # are visible on the web page.
+  for (i in 1:length(levels(mod()[["tmp_dat"]][["ind"]]))) {
+    # Need local so that each item gets its own number. Without it, the value
+    # of i in the renderPlot() will be the same across all instances, because
+    # of when the expression is evaluated.
+    local({
+      my_i <- i
+      plotname <- paste("plot", my_i, sep="")
+      plotdat <- mod()[["tmp_dat"]]
+      subdata <- plotdat[["ind"]] == levels(plotdat[["ind"]])[my_i]
+      plotdat <- plotdat[subdata,]
+      subdata <- plotdat[["plot_group"]] == levels(plotdat[["plot_group"]])[1]
+      output[[plotname]] <- renderPlot({
+        plot(plotdat[["plot_time"]][subdata], plotdat[["values"]][subdata], xlab = "Date", ylab = levels(plotdat[["ind"]])[my_i], xlim = range(plotdat[["plot_time"]]), ylim = range(plotdat[["values"]]), type = "l", lwd = 3)
+        lines(plotdat[["plot_time"]][!subdata], plotdat[["values"]][!subdata], type = "l", col = "blue", lwd = 3)
+      })
+    })
+  }
+  
+  ######Click listener for graphs below#####################
+  
+  for (i in 1:length(levels(mod()[["tmp_dat"]][["ind"]]))){
+    local({
+      my_i <- i
+      # Listen for clicks
+      observe({
+        # Initially will be empty
+        if (is.null(input[[paste0("click", my_i)]])){
+          return()
+        }
+        isolate({datetarget <- as.Date(as.POSIXct((input[[paste0("click", my_i)]]$x)*24*60*60, origin = "1970-01-01"), format = "%Y-%m-%d")
+                timediff <- abs(as.Date(input$table_values[,1]) - datetarget)
+                if(min(timediff) <= 14){
+                  replacetarget <- which.min(timediff)
+                  predclickval$graphID <- levels(mod()[["tmp_dat"]][["ind"]])[my_i]
+                  predclickval$target <- replacetarget
+                  predclickval$value <- input[[paste0("click", my_i)]]$y
+                }
+        })
+      })
+    })
+  }
+  
+  plot_output_list <- lapply(1:length(levels(tmp_dat[["ind"]])), function(i) {
+    plotname <- paste("plot", i, sep="")
+    plotOutput(plotname, height = 300, width = 800, clickId= paste("click", i, sep = ""))
   })
   
+  # Convert the list to a tagList - this is necessary for the list of items
+  # to display properly.
+  do.call(tagList, plot_output_list)
+})
+
+#   output$pred_fwd <- renderPlot({
+#     tmp_dat<-mod()[["tmp_dat"]]
+#     browser()
+#  
+#     theGraph<-xyplot(values~plot_time|ind,group=plot_group,data=tmp_dat,scales=list(relation="free"),ylab=NULL,type=c("l","l"),
+#                     lwd=5,pch=19,cex=0.01,col=c("gray","blue"),main="Observed and Predicted Values for Co-Variates",xlab="Date",
+#                     distribute.type=TRUE)
+#     
+#     
+# #     test1 <- data.frame(c(tmp_dat[["plot_time"]]),c(tmp_dat[["values"]]))
+# #     theGraph <- plot(test1)
+# #     print(theGraph)
+# 
+# # tmp_dat[["plot_time"]] <- as.numeric(as.POSIXct((as.numeric(tmp_dat[["plot_time"]])*1000*24*60*60), origin = "1970-01-01"))
+# # theGraph <- hPlot(values ~ plot_time, group = 'plot_group', data = tmp_dat, type = 'line', title = "Observed and Predicted Values for Co-Variates")
+# # theGraph$yAxis(title = (list(text = NULL)))
+# # theGraph$xAxis(type = 'datetime', labels = list(format = '{value:%Y-%m-%d}'), title = list(text = "Date"))
+# # theGraph$chart(zoomType = "x")
+# # theGraph$addParams(dom = 'pred_fwd')
+# # 
+# # return(theGraph)
+#     print(theGraph)
+#   })
+
   output$ts_error <- renderPlot({
     predicted_vals<-mod()[["predicted_vals"]]
     theGraph<-fanchart(predicted_vals)
@@ -2259,7 +2344,7 @@ output$quote_final<-renderText({
   datevect <- smooth_vals[[1]]
   idx<-datevect>=input$quote_date[1] & datevect<=input$quote_date[2]
   idxx<-smooth_vals[[5]]=="observed"
-  
+  CI_labs<-colnames(smooth_vals)[3:4]
   
   datatrans <- matrix(NA,nrow=nrow(smooth_vals),ncol = 2)
   datatrans[idxx,1] <- smooth_vals[[2]][idxx]
@@ -2271,8 +2356,10 @@ output$quote_final<-renderText({
   rpm <- smooth_vals[[2]][idx]
   volume <- vol_vals[[2]][idx]
   quote<-round(sum(rpm*volume,na.rm=T)/sum(volume,na.rm=T),2)
+  quoteLCL<-round(sum(smooth_vals[[3]][idx]*volume,na.rm=T)/sum(volume,na.rm=T),2)
+  quoteUCL<-round(sum(smooth_vals[[4]][idx]*volume,na.rm=T)/sum(volume,na.rm=T),2)
   
-  paste("Volume Integrated Quote for: ",input$quote_date[1]," - ",input$quote_date[2]," is $",quote,sep="")
+  paste("Volume Integrated Quote for: ",input$quote_date[1]," - ",input$quote_date[2]," is $",quote, "<br>", CI_labs[1], ":$", quoteLCL, ", ", CI_labs[2], ":$", quoteUCL, sep="")
   
   
   
