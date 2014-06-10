@@ -968,18 +968,28 @@ shinyServer(function(input, output, session) { # server is defined within these 
   ######################################
   #####Weather Insert Starts Here ######
   ######################################
+    
   
   output$noaa_key<-renderUI({
   textInput("noaa_key","Your API NOAA Key",value="QDqOpowUVBqxuNYLygxnxXXjxFOqaJuy")
   })
   
+  output$weather_addresses <- renderUI({
+    addresses<-data.frame(Description=c("Origin","Destination"),Address=c("Bakersfield CA","NEW YORK"))
+    if (!is.null(Read_Settings()[["weather_addresses"]])){
+      addresses<-data.frame(Read_Settings()[["weather_addresses"]])
+    }
+
+    matrixCustom('weather_addresses', 'Cities to Get Weather for Modeling',addresses)
+  })
   
-  WEATHER<-reactive({
-    browser()
-    options(noaakey = input$noaa_key) ###Mark Albrecht NOAA Key
+  WEATHER_MAP<-reactive({
+    input$kick_weather###this is to boot it after address or key changes
+    noaakey=isolate(input$noaa_key) ###Mark Albrecht NOAA Key
     
     #####find weather stations meeting the recording requirements######
-    address<-c("Bakersfield CA","NEW YORK")###to be geocoded through googlemaps
+    descriptions<-isolate(input$weather_addresses[,1])
+    address<-isolate(input$weather_addresses[,2])###to be geocoded through googlemaps
     geocode_result<-geocode(address, output="all")###geocode through googlemaps
     
     extents_box<-list()
@@ -988,8 +998,8 @@ shinyServer(function(input, output, session) { # server is defined within these 
     station_both_data<-list()
     for (i in 1:length(geocode_result)){
       extents_box[[i]]<-unlist(geocode_result[i][[1]]$results[[1]]$geometry$bounds)[c(3,4,1,2)]
-      station_daily[[i]]<-noaa_stations(extent=extents_box[[i]],datasetid=c('GHCND'),limit=1000)
-      station_normals[[i]]<-noaa_stations(extent=extents_box[[i]],datasetid=c("NORMAL_DLY"),limit=1000)
+      station_daily[[i]]<-noaa_stations(token=noaakey,extent=extents_box[[i]],datasetid=c('GHCND'),limit=1000)
+      station_normals[[i]]<-noaa_stations(token=noaakey,extent=extents_box[[i]],datasetid=c("NORMAL_DLY"),limit=1000)
       idx<-station_daily[[i]]$data$id %in% station_normals[[i]]$data$id
       station_both_data[[i]]<-station_daily[[i]]$data[idx,]
     }
@@ -1011,12 +1021,52 @@ shinyServer(function(input, output, session) { # server is defined within these 
       map[[i]]<-get_googlemap(center,zoom=10)
       map[[i]]<-ggmap(map[[i]])
       map[[i]]<-map[[i]]+geom_point(aes(x=x,y=y,shape=type),data=stations,size=5)+theme(legend.position="top")
-      print(map[[i]])
+      #print(map[[i]])
       
     }
     
-    ####Get Weather Data from API###
-    i=1
+    return(list(map=map))
+  })
+  
+  output$w_maps <- renderUI({
+    browser()
+    map<-WEATHER_MAP()[["map"]]
+    
+    #tmp_dat<-mod()[["tmp_dat"]]
+    
+    # Call renderPlot for each one. Plots are only actually generated when they
+    # are visible on the web page.
+    for (i in 1:length(map)) {
+      # Need local so that each item gets its own number. Without it, the value
+      # of i in the renderPlot() will be the same across all instances, because
+      # of when the expression is evaluated.
+      local({
+        my_i <- i
+        plotname <- paste("w_plot", my_i, sep="")
+        output[[plotname]] <- renderPlot({
+        print(map[[my_i]])
+        })
+      })
+    }
+    
+    
+    plot_output_list <- lapply(1:length(map), function(i) {
+      plotname <- paste("w_plot", i, sep="")
+      plotOutput(plotname, height = 800, width = 800)
+    })
+    
+    # Convert the list to a tagList - this is necessary for the list of items
+    # to display properly.
+    do.call(tagList, plot_output_list)
+  })
+  
+  
+  
+  
+  ###left off here on 6/9/2014###
+  
+  WEATHER_DATA<-reactive({
+    noaakey=isolate(input$noaa_key)###Mark Albrecht NOAA Key
     DAILY<-data.frame();DAILY_NORMAL<-data.frame()
     for (i in 1:length(chosen)){
       STOP=FALSE
@@ -1036,13 +1086,13 @@ shinyServer(function(input, output, session) { # server is defined within these 
           STOP=TRUE
         }
         
-        TMP<-noaa(datasetid='GHCND', stationid =chosen[[i]]$id, startdate = as.character(startdate),
+        TMP<-noaa(token=noaakey,datasetid='GHCND', stationid =chosen[[i]]$id, startdate = as.character(startdate),
                   enddate = as.character(next_date),datatypeid=c("TMAX","TMIN","PRCP","SNOW"),limit=1000)
         DAILY<-rbind(DAILY,TMP$data)
         startdate=next_date
       }
       
-      TMP<-noaa(datasetid='NORMAL_DLY', stationid =chosen[[i]]$id, startdate = '2010-01-01',
+      TMP<-noaa(token=noaakey,datasetid='NORMAL_DLY', stationid =chosen[[i]]$id, startdate = '2010-01-01',
                 enddate = '2011-01-01',limit=1000,datatypeid='DLY-TAVG-NORMAL')
       DAILY_NORMAL<-rbind(DAILY_NORMAL,TMP$data)
     }
