@@ -7,7 +7,7 @@ options(shiny.maxRequestSize=500*1024^2)###500 megabyte file upload limit set
 shinyServer(function(input, output, session) { # server is defined within these parentheses
   
   ######## click value reactive value for predictions graph set
-  predclickval <- reactiveValues(graphID = NULL, target = NULL, value = NULL)
+  predclickval <- reactiveValues(graphID = NULL, target = NULL, value = NULL, active = NULL)
   
   
   # render UI input elements for use in UI wrapper - come back to this section to calculate length dynamically
@@ -1469,12 +1469,26 @@ shinyServer(function(input, output, session) { # server is defined within these 
 
       # Initially will be empty
 
+    ###### Code for undoing click values #################
+    if(!is.null(predclickval$active)){
+      undolength <- max(c(0,input$undopredclick - (length(which(predclickval$active %in% FALSE)))))
+      undotargets <- (which(predclickval$active %in% TRUE))
+      undolength <- min(c(undolength,length(undotargets)))
+      if(undolength > 0){
+        predclickval$active[undotargets[(length(undotargets)-undolength+1):length(undotargets)]] = FALSE
+      }
+    }
+    
     if (!is.null(predclickval$graphID)){
       #replacename <- paste0("Future.Values.", predclickval$graphID)
-      replacename<-predclickval$graphID
-      target<-predclickval$target
-      value<-predclickval$value
+      for (i in 1:length(predclickval$graphID)){
+      replacename<-predclickval$graphID[i]
+      if((!is.null(matrix_preds[[replacename]])) & predclickval$active[i] == TRUE){
+      target<-predclickval$target[i]
+      value<-predclickval$value[i]
       matrix_preds[[replacename]][target] <- value
+      }
+      }
     }
 
 
@@ -1482,6 +1496,7 @@ shinyServer(function(input, output, session) { # server is defined within these 
     ###you can access these values with input$table_values as the variable anywhere in the server side file
 
   })
+  
   
   
   
@@ -2244,16 +2259,29 @@ output$pred_fwd <- renderUI({
       # Listen for clicks
       observe({
         # Initially will be empty
-        if (is.null(input[[paste0("click", my_i)]])){
+        if (is.null(input[[paste0("click", levels(mod()[["tmp_dat"]][["ind"]])[my_i])]])){
           return()
         }
-        isolate({datetarget <- as.Date(as.POSIXct((input[[paste0("click", my_i)]]$x)*24*60*60, origin = "1970-01-01"), format = "%Y-%m-%d")
+        isolate({
+          clickname <- paste0("click", levels(mod()[["tmp_dat"]][["ind"]])[my_i])
+          datetarget <- as.Date(as.POSIXct((input[[clickname]]$x)*24*60*60, origin = "1970-01-01"), format = "%Y-%m-%d")
                 timediff <- abs(as.Date(input$table_values[,1]) - datetarget)
                 if(min(timediff) <= 14){
                   replacetarget <- which.min(timediff)
-                  predclickval$graphID <- levels(mod()[["tmp_dat"]][["ind"]])[my_i]
-                  predclickval$target <- replacetarget
-                  predclickval$value <- input[[paste0("click", my_i)]]$y
+                  if(length(which(predclickval$graphID %in%levels(mod()[["tmp_dat"]][["ind"]])[my_i])) == 0){
+                    predclickval$graphID <- c(predclickval$graphID,levels(mod()[["tmp_dat"]][["ind"]])[my_i])
+                    predclickval$target <- c(predclickval$target,replacetarget)
+                    predclickval$value <- c(predclickval$value,input[[clickname]]$y)
+                    predclickval$active <- c(predclickval$active,TRUE)
+                  }
+                  
+                  lastclick <- max(which(predclickval$graphID %in%levels(mod()[["tmp_dat"]][["ind"]])[my_i]))
+                  if(!((predclickval$target[lastclick] == replacetarget) & (predclickval$value[lastclick] == input[[clickname]]$y))){
+                  predclickval$graphID <- c(predclickval$graphID,levels(mod()[["tmp_dat"]][["ind"]])[my_i])
+                  predclickval$target <- c(predclickval$target,replacetarget)
+                  predclickval$value <- c(predclickval$value,input[[clickname]]$y)
+                  predclickval$active <- c(predclickval$active,TRUE)
+                  }
                 }
         })
       })
@@ -2262,7 +2290,7 @@ output$pred_fwd <- renderUI({
   
   plot_output_list <- lapply(1:length(levels(tmp_dat[["ind"]])), function(i) {
     plotname <- paste("plot", i, sep="")
-    plotOutput(plotname, height = 300, width = 800, clickId= paste("click", i, sep = ""))
+    plotOutput(plotname, height = 300, width = 800, clickId= paste("click", levels(tmp_dat[["ind"]])[i], sep = ""))
   })
   
   # Convert the list to a tagList - this is necessary for the list of items
