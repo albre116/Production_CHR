@@ -1061,8 +1061,6 @@ shinyServer(function(input, output, session) { # server is defined within these 
   })
   
   
-  
-  
   ###left off here on 6/9/2014###
   
   WEATHER_DATA<-reactive({
