@@ -53,6 +53,8 @@ if(!require("RCurl"))
   (install.packages("RCurl"))
 if(!require("rCharts"))
   install_github('rCharts', 'ramnathv')
+if(!require("rnoaa"))
+  install_github('rnoaa', 'ropensci')
 
 
 
