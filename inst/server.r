@@ -975,7 +975,7 @@ shinyServer(function(input, output, session) { # server is defined within these 
   })
   
   output$weather_addresses <- renderUI({
-    addresses<-data.frame(Description=c("Origin","Destination"),Address=c("Bakersfield CA","NEW YORK"))
+    addresses<-data.frame(Description=c("Origin","Destination","Florida_Oranges"),Address=c("Bakersfield CA","NEW YORK","Jacksonville FL"))
     if (!is.null(Read_Settings()[["weather_addresses"]])){
       addresses<-data.frame(Read_Settings()[["weather_addresses"]])
     }
@@ -1111,7 +1111,19 @@ shinyServer(function(input, output, session) { # server is defined within these 
   ###left off here on 6/9/2014###
   
   WEATHER_DATA<-reactive({
-    if(is.null(WEATHER_STATIONS())){return(NULL)}
+    if(is.null(WEATHER_STATIONS()) | is.null(input$check_group1)){return(NULL)}
+    station_both_data<-WEATHER_STATIONS()[["station_both_data"]]
+    geocode_result<-WEATHER_STATIONS()[["geocode_result"]]
+    descriptions<-WEATHER_STATIONS()[["descriptions"]]
+    ############################################
+    ###select best weather station (for now with highest data coverage)###
+    chosen<-list()
+    for (i in 1:length(station_both_data)){
+      inputname <- paste("input$check_group", i, sep="")
+      table=eval(parse(text=(inputname)))
+      idx<-do.call(match,list(x=table,table=station_both_data[[i]][,1]))
+      chosen[[i]]<-station_both_data[[i]][idx,]
+    }
     noaakey=isolate(input$noaa_key)###Mark Albrecht NOAA Key
     DAILY<-data.frame();DAILY_NORMAL<-data.frame()
     for (i in 1:length(chosen)){
@@ -1219,8 +1231,13 @@ shinyServer(function(input, output, session) { # server is defined within these 
     
     ALL<-rbind(ALL,DIFFERENCE_NORMAL)###replace the dropped averages
     
-    #########################################
+  return(list(ALL=ALL))
+  })
     
+  
+  output$weather_plot<-renderPlot({
+    if(is.null(WEATHER_DATA())){return(NULL)}
+    ALL<-WEATHER_DATA()[["ALL"]]
     theGraph <- ggplot(ALL,aes(x=date, y=value)) + 
       geom_point(size = 1) + facet_wrap(~station+datatype, scales = "free") + 
       xlab("Date") + ylab(NULL) + ggtitle("Raw Data")
