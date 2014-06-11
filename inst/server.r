@@ -983,7 +983,8 @@ shinyServer(function(input, output, session) { # server is defined within these 
     matrixCustom('weather_addresses', 'Cities to Get Weather for Modeling',addresses)
   })
   
-  WEATHER_MAP<-reactive({
+  WEATHER_STATIONS<-reactive({
+    if (is.null(isolate(input$weather_addresses))){return(NULL)}
     input$kick_weather###this is to boot it after address or key changes
     noaakey=isolate(input$noaa_key) ###Mark Albrecht NOAA Key
     
@@ -1003,12 +1004,58 @@ shinyServer(function(input, output, session) { # server is defined within these 
       idx<-station_daily[[i]]$data$id %in% station_normals[[i]]$data$id
       station_both_data[[i]]<-station_daily[[i]]$data[idx,]
     }
+    return(list(station_both_data=station_both_data,geocode_result=geocode_result,descriptions=descriptions,address=address))
+  })
+  
+  output$stations_table<-renderDataTable({
+    if(is.null(WEATHER_STATIONS())){return(NULL)}
+    station_both_data<-WEATHER_STATIONS()[["station_both_data"]]
+    descriptions<-WEATHER_STATIONS()[["descriptions"]]
+    out<-data.frame()
+    for (i in 1:length(station_both_data)){
+      out<-rbind(out,data.frame("Description"=descriptions[i],station_both_data[[i]]))
+    }
     
+    out
+    
+  })
+  
+    
+  output$station_list<- renderUI({
+    if(is.null(WEATHER_STATIONS())){return(NULL)}
+    station_both_data<-WEATHER_STATIONS()[["station_both_data"]]
+    descriptions<-WEATHER_STATIONS()[["descriptions"]]
+    
+    chosen<-list()
+    for (i in 1:length(station_both_data)){
+      chosen[[i]]<-station_both_data[[i]][which.max(station_both_data[[i]]$datacoverage),1]
+    }
+    
+    checkbox_output_list <- lapply(1:length(station_both_data), function(i) {
+      inputname <- paste("check_group", i, sep="")
+      selectInput(inputname, descriptions[i],station_both_data[[i]][,1],chosen[[i]])
+    })
+    ###access these boxes using input$check_group<i>
+    
+    # Convert the list to a tagList - this is necessary for the list of items
+    # to display properly.
+    do.call(tagList, checkbox_output_list)
+  })
+  
+  
+    WEATHER_MAP<-reactive({
+    if(is.null(WEATHER_STATIONS()) | is.null(input$check_group1)){return(NULL)}
+    station_both_data<-WEATHER_STATIONS()[["station_both_data"]]
+    geocode_result<-WEATHER_STATIONS()[["geocode_result"]]
+    descriptions<-WEATHER_STATIONS()[["descriptions"]]
     ############################################
     ###select best weather station (for now with highest data coverage)###
     chosen<-list()
     for (i in 1:length(station_both_data)){
-      chosen[[i]]<-station_both_data[[i]][which.max(station_both_data[[i]]$datacoverage),]
+      inputname <- paste("input$check_group", i, sep="")
+      table=eval(parse(text=(inputname)))
+      idx<-do.call(match,list(x=table,table=station_both_data[[i]][,1]))
+      chosen[[i]]<-station_both_data[[i]][idx,]
     }
     
     #############plot weather station options###########
@@ -1020,7 +1067,8 @@ shinyServer(function(input, output, session) { # server is defined within these 
       stations$type[station_both_data[[i]]$id==chosen[[i]]$id]="Selected Weather Station"
       map[[i]]<-get_googlemap(center,zoom=10)
       map[[i]]<-ggmap(map[[i]])
-      map[[i]]<-map[[i]]+geom_point(aes(x=x,y=y,shape=type),data=stations,size=5)+theme(legend.position="top")
+      map[[i]]<-map[[i]]+geom_point(aes(x=x,y=y,shape=type,colour=type),data=stations,size=5)+theme(legend.position="top")+
+        ggtitle(descriptions[i])+scale_colour_manual(values=c("black","red"))
       #print(map[[i]])
       
     }
@@ -1029,9 +1077,8 @@ shinyServer(function(input, output, session) { # server is defined within these 
   })
   
   output$w_maps <- renderUI({
-    browser()
+    if(is.null(WEATHER_STATIONS())){return(NULL)}
     map<-WEATHER_MAP()[["map"]]
-    
     #tmp_dat<-mod()[["tmp_dat"]]
     
     # Call renderPlot for each one. Plots are only actually generated when they
@@ -1064,6 +1111,7 @@ shinyServer(function(input, output, session) { # server is defined within these 
   ###left off here on 6/9/2014###
   
   WEATHER_DATA<-reactive({
+    if(is.null(WEATHER_STATIONS())){return(NULL)}
     noaakey=isolate(input$noaa_key)###Mark Albrecht NOAA Key
     DAILY<-data.frame();DAILY_NORMAL<-data.frame()
     for (i in 1:length(chosen)){

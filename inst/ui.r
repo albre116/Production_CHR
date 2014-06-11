@@ -73,7 +73,8 @@ shinyUI(fluidPage(
                                                 #uiOutput("l3_lane_desc")
                                ),
                                conditionalPanel(condition="input.navbar1=='panel1' && input.navbar11=='weather'",    
-                                                uiOutput("noaa_key"),uiOutput("weather_addresses"),actionButton("kick_weather","Go: Lookup Weather For New Addresses")
+                                                uiOutput("noaa_key"),uiOutput("weather_addresses"),actionButton("kick_weather","Go: Lookup Weather For New Addresses"),
+                                                uiOutput("station_list")
                                ),
                                conditionalPanel(condition="input.navbar1=='panel4' && input.navbar14=='bcst_pred'",    
                                                 textInput("settings_name","Save Settings to File Name:",value="settings_name")
@@ -163,7 +164,7 @@ shinyUI(fluidPage(
                                                                                            ))),value="lane_3_construct"),
                                                    tabPanel("All Lanes Raw Data",dataTableOutput("lanes"),value="all_lanes"),
                                                    tabPanel("API Data",uiOutput("raw_api"),uiOutput("API_choice"),dataTableOutput("raw_indicators"),value="api_data"),
-                                                   tabPanel("Weather Data",uiOutput("w_maps"),value="weather"),
+                                                   tabPanel("Weather Data",uiOutput("w_maps"),dataTableOutput("stations_table"),value="weather"),
                                                    tabPanel("Weekly Averages",dataTableOutput("weekly_averages"),value="weekly_avgs")
                                         )
                                ),
