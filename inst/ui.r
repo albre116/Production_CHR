@@ -96,6 +96,7 @@ shinyUI(fluidPage(
                                conditionalPanel(condition = "input.navbar1=='panel4' && (input.navbar14=='preds' || input.navbar14=='vol_quote')", uiOutput("LCL_percentile")),
                                conditionalPanel(condition = "input.navbar1=='panel4' && (input.navbar14=='preds' || input.navbar14=='vol_quote')", uiOutput("UCL_percentile")),
                                conditionalPanel(condition = "input.navbar1=='panel4' && (input.navbar14=='pred_fwd' | input.navbar14=='preds')", uiOutput("carry_forward")),
+                               conditionalPanel(condition = "input.navbar1=='panel4' && (input.navbar14=='pred_fwd' | input.navbar14=='preds')", actionButton("undopredclick","Undo Click-Set Point")),
                                conditionalPanel(condition = "input.navbar1=='panel4' && (input.navbar14=='pred_fwd' | input.navbar14=='preds')", uiOutput("matrix_values")),
                                conditionalPanel(condition = "input.navbar1=='panel4' && input.navbar14=='gam_pred'", downloadButton("predictions_GAM","Download GAM Predictions (CSV)")),
                                conditionalPanel(condition = "input.navbar1=='panel4' && input.navbar14=='vol_quote'", uiOutput("quote_date")),
