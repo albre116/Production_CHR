@@ -73,8 +73,8 @@ shinyUI(fluidPage(
                                                 #uiOutput("l3_lane_desc")
                                ),
                                conditionalPanel(condition="input.navbar1=='panel1' && input.navbar11=='weather'",    
-                                                uiOutput("noaa_key"),uiOutput("weather_addresses"),actionButton("kick_weather","Go: Lookup Weather For New Addresses"),
-                                                uiOutput("station_list")
+                                                uiOutput("noaa_key"),uiOutput("weather_addresses"),actionButton("kick_weather","Go: Lookup Weather For Listed Addresses (must click to activate weather)"),
+                                                h6("Pre-Selected Stations Have Best Data Coverage of Avaliable Stations"),uiOutput("station_list")
                                ),
                                conditionalPanel(condition="input.navbar1=='panel4' && input.navbar14=='bcst_pred'",    
                                                 textInput("settings_name","Save Settings to File Name:",value="settings_name")

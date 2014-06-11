@@ -984,8 +984,8 @@ shinyServer(function(input, output, session) { # server is defined within these 
   })
   
   WEATHER_STATIONS<-reactive({
-    if (is.null(isolate(input$weather_addresses))){return(NULL)}
     input$kick_weather###this is to boot it after address or key changes
+    if (is.null(isolate(input$weather_addresses))){return(NULL)}
     noaakey=isolate(input$noaa_key) ###Mark Albrecht NOAA Key
     
     #####find weather stations meeting the recording requirements######
