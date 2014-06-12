@@ -968,7 +968,13 @@ shinyServer(function(input, output, session) { # server is defined within these 
   ######################################
   #####Weather Insert Starts Here ######
   ######################################
-    
+  output$weather_active<-renderUI({
+    if(is.null(WEATHER_STATIONS())){
+      h3("You have to click the go lookup weather button (if this message is showing weather is not active)")
+    }else{
+      return(NULL)
+    } 
+  })
   
   output$noaa_key<-renderUI({
   textInput("noaa_key","Your API NOAA Key",value="QDqOpowUVBqxuNYLygxnxXXjxFOqaJuy")
@@ -1108,8 +1114,6 @@ shinyServer(function(input, output, session) { # server is defined within these 
   })
   
   
-  ###left off here on 6/9/2014###
-  
   WEATHER_DATA<-reactive({
     if(is.null(WEATHER_STATIONS()) | is.null(input$check_group1)){return(NULL)}
     station_both_data<-WEATHER_STATIONS()[["station_both_data"]]
@@ -1244,6 +1248,51 @@ shinyServer(function(input, output, session) { # server is defined within these 
     print(theGraph)
     
   })
+  
+  
+  WEATHER<-reactive({
+  if(is.null(WEATHER_DATA())){return(NULL)}
+  ALL<-WEATHER_DATA()[["ALL"]]
+  CHR<-FINAL()
+  
+  ID<-paste(ALL$station,ALL$datatype,sep="_")
+  ID<-gsub(":","",ID)###get rid of illegal characters
+  ID<-gsub("-","",ID)###get rid of illegal characters
+  WEATHER<-list()
+  for (i in unique(ID)){
+    WEATHER[[i]]<-data.frame(ALL$date[ID==i],ALL$value[ID==i])
+    colnames(WEATHER[[i]])<-c("date",i)
+  }  
+    
+    
+  for (i in names(WEATHER)){
+    tmpcmd<-paste(i,"=averages(WEATHER[[\"",i,"\"]],d_index=1)",sep="")
+    eval(parse(text=tmpcmd))
+  }
+  
+  y=names(WEATHER)
+  tmpcmd<-paste("\"",y,"\"=",y,"$WEEK[,-c(1,4)],",sep="")
+  tmpcmd<-paste(tmpcmd,collapse="")
+  tmpcmd<-substr(tmpcmd,1,nchar(tmpcmd)-1)
+  
+  tmpcmd<-paste("X=structure(list(",tmpcmd,"))",sep="")
+  eval(parse(text=tmpcmd))
+  
+  
+  START=format(min(CHR$Date),format="%Y-%m-%d")
+  END=format(Sys.time(),format="%Y-%m-%d")
+  DATA_W<-align_week(X,d_index=rep(1,length(ls(X))),start=START,end=END)
+  for (i in 2:length(DATA_W)){
+    DATA_W[[i]]<-DATA_W[[i]][-c(1)]
+  }
+  
+  #DATA_FILL_I<-loess_fill(DATA_I,t_index=1,span=c(10:1/10),folds=5)
+  DATA_FILL_W<-PIECE_fill(DATA_W,t_index=1)
+  
+  list(DATA_W=DATA_W,DATA_FILL_W=DATA_FILL_W)
+  })
+  
+  
   ####################################
   #####Weather Insert Ends Here ######
   ####################################
@@ -1363,6 +1412,11 @@ shinyServer(function(input, output, session) { # server is defined within these 
     CHR<-FINAL()
     DATA_I<-API()[["DATA_I"]]
     DATA_FILL_I<-API()[["DATA_FILL_I"]]
+    DATA_W<-WEATHER()[["DATA_W"]]
+    DATA_FILL_W<-WEATHER()[["DATA_FILL_W"]]
+    
+    
+    
     roll<-unique(CHR$Constructed_Lane)
     for (i in 1:length(roll)){
       y<-roll[i]
@@ -1391,6 +1445,12 @@ shinyServer(function(input, output, session) { # server is defined within these 
     }
     keep<-cc %in% input$API_choice
     DATA_T<-c(DATA,DATA_I[keep])
+    
+    if(!is.null(DATA_W)){###add in weather
+      weath<-names(DATA_W)
+      DATA_T<-c(DATA_T,DATA_W[weath[-1]])
+    }
+    
     PLOT<-raw_plot_data(DATA_T,t_index=c(1))
     method="loess"
     if (method=="loess"){
@@ -1402,6 +1462,9 @@ shinyServer(function(input, output, session) { # server is defined within these 
     
     
     DATA_FILL<-c(DATA_FILL,DATA_FILL_I[keep])
+    if(!is.null(DATA_FILL_W)){###add in weather
+     DATA_FILL<-c(DATA_FILL,DATA_FILL_W[weath[-1]])
+    }
     PLOT_FILL<-raw_plot_data(DATA_FILL,t_index=c(1))
     PLOT<-raw_plot_data(DATA_T,t_index=c(1))
     miss_index<-rep("observed",nrow(PLOT))
@@ -2578,7 +2641,7 @@ output$pred_fwd <- renderUI({
 
 #   output$pred_fwd <- renderPlot({
 #     tmp_dat<-mod()[["tmp_dat"]]
-#     browser()
+#     
 #  
 #     theGraph<-xyplot(values~plot_time|ind,group=plot_group,data=tmp_dat,scales=list(relation="free"),ylab=NULL,type=c("l","l"),
 #                     lwd=5,pch=19,cex=0.01,col=c("gray","blue"),main="Observed and Predicted Values for Co-Variates",xlab="Date",

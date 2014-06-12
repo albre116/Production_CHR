@@ -164,7 +164,7 @@ shinyUI(fluidPage(
                                                                                            ))),value="lane_3_construct"),
                                                    tabPanel("All Lanes Raw Data",dataTableOutput("lanes"),value="all_lanes"),
                                                    tabPanel("API Data",uiOutput("raw_api"),uiOutput("API_choice"),dataTableOutput("raw_indicators"),value="api_data"),
-                                                   tabPanel("Weather Data",plotOutput("weather_plot"),uiOutput("w_maps"),dataTableOutput("stations_table"),value="weather"),
+                                                   tabPanel("Weather Data",uiOutput("weather_active"),plotOutput("weather_plot"),uiOutput("w_maps"),dataTableOutput("stations_table"),value="weather"),
                                                    tabPanel("Weekly Averages",dataTableOutput("weekly_averages"),value="weekly_avgs")
                                         )
                                ),
