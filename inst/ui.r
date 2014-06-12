@@ -52,7 +52,8 @@ shinyUI(fluidPage(
                                conditionalPanel(condition="input.navbar1=='panel1' & input.navbar11=='lane_1_construct'",
                                                 textInput("lane1_id","Name of Lane 1",value="Lane_1"),
                                                 h4("Select Stop Count"),
-                                                uiOutput("l1_stop_ct")
+                                                uiOutput("l1_stop_ct"),
+                                                uiOutput("stop_table1")
                                                 #h4("Select Lanes To Include"),
                                                 #uiOutput("l1_lane_desc")
                                ),
@@ -60,7 +61,8 @@ shinyUI(fluidPage(
                                                 textInput("lane2_id","Name of Lane 2",value="Lane_2"),
                                                 h4("Select Origin Zips"),
                                                 h4("Select Stop Count"),
-                                                uiOutput("l2_stop_ct")
+                                                uiOutput("l2_stop_ct"),
+                                                uiOutput("stop_table2")
                                                 #h4("Select Lanes To Include"),
                                                 #uiOutput("l2_lane_desc")
                                                 
@@ -68,7 +70,8 @@ shinyUI(fluidPage(
                                conditionalPanel(condition="input.navbar1=='panel1' & input.navbar11=='lane_3_construct'",
                                                 textInput("lane3_id","Name of Lane 3",value="Lane_3"),
                                                 h4("Select Stop Count"),
-                                                uiOutput("l3_stop_ct")
+                                                uiOutput("l3_stop_ct"),
+                                                uiOutput("stop_table3")
                                                 #h4("Select Lanes To Include"),
                                                 #uiOutput("l3_lane_desc")
                                ),
@@ -188,9 +191,12 @@ shinyUI(fluidPage(
                                         navbarPage(title = "", id = "navbar14",
                                                    tabPanel("Predictor Values", uiOutput("pred_fwd"), value="pred_fwd"),
                                                    tabPanel("Model Predictions", showOutput("preds","highcharts"), value = "preds"),
-                                                   tabPanel("Integrated Volume Quote",fluidPage(fluidRow(h3(textOutput("quote_final"))),fluidRow(column(6,showOutput("quote_value","highcharts")),
+                                                   tabPanel("Integrated Volume Quote",fluidPage(fluidRow(fluidRow(column(6,showOutput("quote_value","highcharts")),
                                                                                                          column(6,showOutput("quote_volume","highcharts"))),
-                                                                                                fluidRow(dataTableOutput("vol_quote"))),value = "vol_quote"),
+                                                                                                         fluidRow(h3(textOutput("quote_final_title"))),
+                                                                                                         fluidRow(dataTableOutput("quote_final")),
+                                                                                                         h4("Raw Data"),
+                                                                                                fluidRow(dataTableOutput("vol_quote")))),value = "vol_quote"),
                                                    tabPanel("Table of Predictions", dataTableOutput("GAM_predictions"), value = "gam_pred"),
                                                    tabPanel("Backcasting Predictions", showOutput("Backcast_graph","highcharts"), value = "bcst_pred")
                                         )
