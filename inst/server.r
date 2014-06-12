@@ -2456,6 +2456,34 @@ output$raw_api <- renderUI({
         return(NULL)}
     
   })
+
+output$stop_table1 <- renderUI({
+  datset <- L1()
+  stopnames <- c("Lower Stop Count", "Upper Stop Count", "Avg RPM", "Avg Mileage")
+  startvals <- c(min(datset[["Stop_Count"]]),max(datset[["Stop_Count"]]),1,1)
+  stop_table<-data.frame(rbind(toupper(stopnames),startvals))
+  if (!is.null(Read_Settings()[["stop_table1"]])){
+    stop_table<-data.frame(Read_Settings()[["stop_table1"]])
+  }
+  
+  if((!is.null(input$stop_table1)) && (nrow(input$stop_table1) >= 2)){
+    valmatrix <- matrix(data = NA, nrow = nrow(input$stop_table1) - 1, ncol = 4)
+    for (i in 2:nrow(input$stop_table1)){
+      if(!(is.na(as.numeric(input$stop_table1[i,1])) | is.na(as.numeric(input$stop_table1[i,2])))){
+        avgsub <- which(datset[["Stop_Count"]] %in% c(as.numeric(input$stop_table1[i,1]):as.numeric(input$stop_table1[i,2])))
+        valmatrix[i-1,1] <- input$stop_table1[i,1]
+        valmatrix[i-1,2] <- input$stop_table1[i,2]
+        valmatrix[i-1,3] <- round(mean(datset[["RPM"]][avgsub]), digits = 3)
+        valmatrix[i-1,4] <- round(mean(datset[["Total_Mileage"]][avgsub]), digits = 1)
+      }
+    }
+    stop_table<-data.frame(rbind(toupper(stopnames),valmatrix))
+  }
+  
+  matrixCustom('stop_table1', 'Rate and Mileage Between Stop Counts',stop_table)
+  ###you can access these values with input$stop_table1 as the variable anywhere in the server side file
+  
+})
   
   output$l2_raw_plot<-renderPlot({
     if(!is.null(L2())){
@@ -2466,6 +2494,34 @@ output$raw_api <- renderUI({
         return(NULL)}
     
   })
+
+output$stop_table2 <- renderUI({
+  datset <- L2()
+  stopnames <- c("Lower Stop Count", "Upper Stop Count", "Avg RPM", "Avg Mileage")
+  startvals <- c(min(datset[["Stop_Count"]]),max(datset[["Stop_Count"]]),1,1)
+  stop_table<-data.frame(rbind(toupper(stopnames),startvals))
+  if (!is.null(Read_Settings()[["stop_table2"]])){
+    stop_table<-data.frame(Read_Settings()[["stop_table2"]])
+  }
+  
+  if((!is.null(input$stop_table2)) && (nrow(input$stop_table2) >= 2)){
+    valmatrix <- matrix(data = NA, nrow = nrow(input$stop_table2) - 1, ncol = 4)
+    for (i in 2:nrow(input$stop_table2)){
+      if(!(is.na(as.numeric(input$stop_table2[i,1])) | is.na(as.numeric(input$stop_table2[i,2])))){
+        avgsub <- which(datset[["Stop_Count"]] %in% c(as.numeric(input$stop_table2[i,1]):as.numeric(input$stop_table2[i,2])))
+        valmatrix[i-1,1] <- input$stop_table2[i,1]
+        valmatrix[i-1,2] <- input$stop_table2[i,2]
+        valmatrix[i-1,3] <- round(mean(datset[["RPM"]][avgsub]), digits = 3)
+        valmatrix[i-1,4] <- round(mean(datset[["Total_Mileage"]][avgsub]), digits = 1)
+      }
+    }
+    stop_table<-data.frame(rbind(toupper(stopnames),valmatrix))
+  }
+  
+  matrixCustom('stop_table2', 'Rate and Mileage Between Stop Counts',stop_table)
+  ###you can access these values with input$stop_table2 as the variable anywhere in the server side file
+  
+})
   
   output$l3_raw_plot<-renderPlot({
     if(!is.null(L3())){
@@ -2476,6 +2532,34 @@ output$raw_api <- renderUI({
         return(NULL)}
     
   })
+
+output$stop_table3 <- renderUI({
+  datset <- L3()
+  stopnames <- c("Lower Stop Count", "Upper Stop Count", "Avg RPM", "Avg Mileage")
+  startvals <- c(min(datset[["Stop_Count"]]),max(datset[["Stop_Count"]]),1,1)
+  stop_table<-data.frame(rbind(toupper(stopnames),startvals))
+  if (!is.null(Read_Settings()[["stop_table3"]])){
+    stop_table<-data.frame(Read_Settings()[["stop_table3"]])
+  }
+  
+  if((!is.null(input$stop_table3)) && (nrow(input$stop_table3) >= 2)){
+    valmatrix <- matrix(data = NA, nrow = nrow(input$stop_table3) - 1, ncol = 4)
+    for (i in 2:nrow(input$stop_table3)){
+      if(!(is.na(as.numeric(input$stop_table3[i,1])) | is.na(as.numeric(input$stop_table3[i,2])))){
+        avgsub <- which(datset[["Stop_Count"]] %in% c(as.numeric(input$stop_table3[i,1]):as.numeric(input$stop_table3[i,2])))
+        valmatrix[i-1,1] <- input$stop_table3[i,1]
+        valmatrix[i-1,2] <- input$stop_table3[i,2]
+        valmatrix[i-1,3] <- round(mean(datset[["RPM"]][avgsub]), digits = 3)
+        valmatrix[i-1,4] <- round(mean(datset[["Total_Mileage"]][avgsub]), digits = 1)
+      }
+    }
+    stop_table<-data.frame(rbind(toupper(stopnames),valmatrix))
+  }
+  
+  matrixCustom('stop_table3', 'Rate and Mileage Between Stop Counts',stop_table)
+  ###you can access these values with input$stop_table3 as the variable anywhere in the server side file
+  
+})
   
   output$lanes<-renderDataTable({
     FINAL()
@@ -2586,8 +2670,8 @@ output$pred_fwd <- renderUI({
       plotdat <- plotdat[subdata,]
       subdata <- plotdat[["plot_group"]] == levels(plotdat[["plot_group"]])[1]
       output[[plotname]] <- renderPlot({
-        plot(plotdat[["plot_time"]][subdata], plotdat[["values"]][subdata], xlab = "Date", ylab = levels(plotdat[["ind"]])[my_i], xlim = range(plotdat[["plot_time"]]), ylim = range(plotdat[["values"]]), type = "l", lwd = 3)
-        lines(plotdat[["plot_time"]][!subdata], plotdat[["values"]][!subdata], type = "l", col = "blue", lwd = 3)
+        plot(plotdat[["plot_time"]][subdata], plotdat[["values"]][subdata], xlab = "Date", ylab = levels(plotdat[["ind"]])[my_i], xlim = range(plotdat[["plot_time"]]), ylim = range(plotdat[["values"]]), type = "o", lwd = 2)
+        lines(plotdat[["plot_time"]][!subdata], plotdat[["values"]][!subdata], type = "o", col = "blue", lwd = 2)
       })
     })
   }
@@ -2631,7 +2715,7 @@ output$pred_fwd <- renderUI({
   
   plot_output_list <- lapply(1:length(levels(tmp_dat[["ind"]])), function(i) {
     plotname <- paste("plot", i, sep="")
-    plotOutput(plotname, height = 300, width = 800, clickId= paste("click", levels(tmp_dat[["ind"]])[i], sep = ""))
+    plotOutput(plotname, height = 500, width = 1000, clickId= paste("click", levels(tmp_dat[["ind"]])[i], sep = ""))
   })
   
   # Convert the list to a tagList - this is necessary for the list of items
@@ -2708,7 +2792,13 @@ output$preds<- renderChart({
 ######################################################################################
 ########################### FUCK           ###################################
 ######################################################################################
-output$quote_final<-renderText({
+output$quote_final_title<-renderText({
+  
+  paste("Volume Integrated Quote for: ",input$quote_date[1]," - ",input$quote_date[2], sep="")
+  
+})
+
+output$quote_final<-renderDataTable({
   smooth_vals<-mod()[["smooth_data"]]
   vol_vals<-vol_integrator()
   datevect <- smooth_vals[[1]]
@@ -2725,13 +2815,18 @@ output$quote_final<-renderText({
   datatrans <- data.frame(datevect,datatrans)
   rpm <- smooth_vals[[2]][idx]
   volume <- vol_vals[[2]][idx]
-  quote<-round(sum(rpm*volume,na.rm=T)/sum(volume,na.rm=T),2)
-  quoteLCL<-round(sum(smooth_vals[[3]][idx]*volume,na.rm=T)/sum(volume,na.rm=T),2)
-  quoteUCL<-round(sum(smooth_vals[[4]][idx]*volume,na.rm=T)/sum(volume,na.rm=T),2)
+  intquote<-round(sum(rpm*volume,na.rm=T)/sum(volume,na.rm=T),2)
+  intquoteLCL<-round(sum(smooth_vals[[3]][idx]*volume,na.rm=T)/sum(volume,na.rm=T),2)
+  intquoteUCL<-round(sum(smooth_vals[[4]][idx]*volume,na.rm=T)/sum(volume,na.rm=T),2)
   
-  paste("Volume Integrated Quote for: ",input$quote_date[1]," - ",input$quote_date[2]," is $",quote, "<br>", CI_labs[1], ":$", quoteLCL, ", ", CI_labs[2], ":$", quoteUCL, sep="")
+  rateavg<-round(mean(rpm,na.rm=T),2)
+  rateavgLCL <- round(mean(smooth_vals[[3]][idx],na.rm=T),2)
+  rateavgUCL <- round(mean(smooth_vals[[4]][idx],na.rm=T),2)
   
-  
+  volavg<-round(mean(volume,na.rm=T),2)
+  quotetable <- data.frame(cbind(c("Mean", CI_labs[2], CI_labs[1]),c(intquote,intquoteUCL,intquoteLCL),c(rateavg,rateavgUCL,rateavgLCL),c(volavg,NA,NA)))
+  colnames(quotetable) <- c("Value Type", "Volume Integrated Quote", "Rate per Mile", "Volume")
+  return(quotetable)
   
 })
 
@@ -2781,7 +2876,7 @@ quoteUCL <- round(mean(smooth_vals[[4]][seldate],na.rm=T),2)
 #   colnames(datatrans) <- c("date","Rate_observed","Rate_predicted")
 #   datatrans <- reshape2::melt(datatrans,id= 'date', na.rm = TRUE)
 #   datatrans[,1] <- as.numeric(as.POSIXct((as.numeric(datatrans[,1])*1000*24*60*60), origin = "1970-01-01"))
-  theGraph <- hPlot(value ~ date, group = 'variable', data = datatrans, type = 'line', title = paste("Average Rate Per Mile:$",quote, "<br>",CI_labs[1], ":$", quoteLCL, ", ", CI_labs[2], ":$", quoteUCL, sep=""), subtitle = "")
+  theGraph <- hPlot(value ~ date, group = 'variable', data = datatrans, type = 'line', title = paste("Average Rate Per Mile:$",quote, sep=""), subtitle = "")
   theGraph$chart(zoomType = "x")
   min_band<-as.numeric(as.POSIXct((as.numeric(input$quote_date[1])*1000*24*60*60), origin = "1970-01-01"))
   max_band<-as.numeric(as.POSIXct((as.numeric(input$quote_date[2])*1000*24*60*60), origin = "1970-01-01"))
