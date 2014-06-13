@@ -2560,6 +2560,33 @@ output$stop_table3 <- renderUI({
   ###you can access these values with input$stop_table3 as the variable anywhere in the server side file
   
 })
+output$stop_table_current <- renderUI({
+  datset <- FINAL()
+  stopnames <- c("Lower Stop Count", "Upper Stop Count", "Avg RPM", "Avg Mileage")
+  startvals <- c(min(datset[["Stop_Count"]]),max(datset[["Stop_Count"]]),1,1)
+  stop_table<-data.frame(rbind(toupper(stopnames),startvals))
+  if (!is.null(Read_Settings()[["stop_table_current"]])){
+    stop_table<-data.frame(Read_Settings()[["stop_table_current"]])
+  }
+  
+  if((!is.null(input$stop_table_current)) && (nrow(input$stop_table_current) >= 2)){
+    valmatrix <- matrix(data = NA, nrow = nrow(input$stop_table_current) - 1, ncol = 4)
+    for (i in 2:nrow(input$stop_table_current)){
+      if(!(is.na(as.numeric(input$stop_table_current[i,1])) | is.na(as.numeric(input$stop_table_current[i,2])))){
+        avgsub <- which(datset[["Stop_Count"]] %in% c(as.numeric(input$stop_table_current[i,1]):as.numeric(input$stop_table_current[i,2])))
+        valmatrix[i-1,1] <- input$stop_table_current[i,1]
+        valmatrix[i-1,2] <- input$stop_table_current[i,2]
+        valmatrix[i-1,3] <- round(mean(datset[["RPM"]][avgsub]), digits = 3)
+        valmatrix[i-1,4] <- round(mean(datset[["Total_Mileage"]][avgsub]), digits = 1)
+      }
+    }
+    stop_table<-data.frame(rbind(toupper(stopnames),valmatrix))
+  }
+  
+  matrixCustom('stop_table_current', 'Rate and Mileage Between Stop Counts',stop_table)
+  ###you can access these values with input$stop_table_current as the variable anywhere in the server side file
+  
+})
   
   output$lanes<-renderDataTable({
     FINAL()
@@ -2805,7 +2832,6 @@ output$quote_final<-renderDataTable({
   idx<-datevect>=input$quote_date[1] & datevect<=input$quote_date[2]
   idxx<-smooth_vals[[5]]=="observed"
   CI_labs<-colnames(smooth_vals)[3:4]
-  
   datatrans <- matrix(NA,nrow=nrow(smooth_vals),ncol = 2)
   datatrans[idxx,1] <- smooth_vals[[2]][idxx]
   #datatrans[idxx,2] <- vol_vals[[2]][idxx]

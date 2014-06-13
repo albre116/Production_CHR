@@ -195,6 +195,8 @@ shinyUI(fluidPage(
                                                                                                          column(6,showOutput("quote_volume","highcharts"))),
                                                                                                          fluidRow(h3(textOutput("quote_final_title"))),
                                                                                                          fluidRow(dataTableOutput("quote_final")),
+                                                                                                         h4("Historical RPM and Mileage by Stop Count"),
+                                                                                                         fluidRow(uiOutput("stop_table_current")),
                                                                                                          h4("Raw Data"),
                                                                                                 fluidRow(dataTableOutput("vol_quote")))),value = "vol_quote"),
                                                    tabPanel("Table of Predictions", dataTableOutput("GAM_predictions"), value = "gam_pred"),
