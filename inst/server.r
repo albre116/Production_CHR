@@ -874,7 +874,7 @@ shinyServer(function(input, output, session) { # server is defined within these 
     fuel_choice<-c("PET.EMD_EPD2D_PTE_NUS_DPG.W","PET.EMD_EPD2D_PTE_R10_DPG.W","PET.EMD_EPD2D_PTE_R1X_DPG.W",
                    "PET.EMD_EPD2D_PTE_R1Y_DPG.W","PET.EMD_EPD2D_PTE_R1Z_DPG.W","PET.EMD_EPD2D_PTE_R20_DPG.W",
                    "PET.EMD_EPD2D_PTE_R30_DPG.W","PET.EMD_EPD2D_PTE_R40_DPG.W","PET.EMD_EPD2D_PTE_R50_DPG.W ",
-                   "PET.EMD_EPD2D_PTE_R5XCA_DPG.W","PET.EMD_EPD2D_PTE_SCA_DPG.W")
+                   "PET.EMD_EPD2D_PTE_SCA_DPG.W")
     
     if (input$refresh!=0 | is.null(path)){
     FUEL_DATA<-vector("list",length(fuel_choice))
@@ -981,7 +981,7 @@ shinyServer(function(input, output, session) { # server is defined within these 
   })
   
   output$weather_addresses <- renderUI({
-    addresses<-data.frame(Description=c("Origin","Destination","Florida_Oranges"),Address=c("Bakersfield CA","NEW YORK","Jacksonville FL"))
+    addresses<-data.frame(Description=c("Destination"),Address=c("New York NY"))
     if (!is.null(Read_Settings()[["weather_addresses"]])){
       addresses<-data.frame(Read_Settings()[["weather_addresses"]])
     }
@@ -998,6 +998,11 @@ shinyServer(function(input, output, session) { # server is defined within these 
     descriptions<-isolate(input$weather_addresses[,1])
     address<-isolate(input$weather_addresses[,2])###to be geocoded through googlemaps
     geocode_result<-geocode(address, output="all")###geocode through googlemaps
+    if(length(address)==1){###add a nested layer to deal with different API format if address is 1 item
+      tmp<-list()
+      tmp[[1]]<-geocode_result
+      geocode_result<-tmp
+    }
     
     extents_box<-list()
     station_daily<-list()
@@ -1254,7 +1259,6 @@ shinyServer(function(input, output, session) { # server is defined within these 
   if(is.null(WEATHER_DATA())){return(NULL)}
   ALL<-WEATHER_DATA()[["ALL"]]
   CHR<-FINAL()
-  
   ID<-paste(ALL$station,ALL$datatype,sep="_")
   ID<-gsub(":","",ID)###get rid of illegal characters
   ID<-gsub("-","",ID)###get rid of illegal characters
@@ -1265,19 +1269,25 @@ shinyServer(function(input, output, session) { # server is defined within these 
   }  
     
     
+#   for (i in names(WEATHER)){
+#     tmpcmd<-paste(i,"=averages(WEATHER[[\"",i,"\"]],d_index=1)",sep="")
+#     eval(parse(text=tmpcmd))
+#   }
+#   
+# 
+#   y=names(WEATHER)
+#   tmpcmd<-paste("\"",y,"\"=",y,"$WEEK[,-c(1,4)],",sep="")
+#   tmpcmd<-paste(tmpcmd,collapse="")
+#   tmpcmd<-substr(tmpcmd,1,nchar(tmpcmd)-1)
+#   
+#   tmpcmd<-paste("X=structure(list(",tmpcmd,"))",sep="")
+#   eval(parse(text=tmpcmd))
+
+  X<-list()
   for (i in names(WEATHER)){
-    tmpcmd<-paste(i,"=averages(WEATHER[[\"",i,"\"]],d_index=1)",sep="")
-    eval(parse(text=tmpcmd))
+    tmp<-averages(WEATHER[[i]],d_index=1)
+    X[[i]]<-tmp$WEEK[,-c(1,4)]
   }
-  
-  y=names(WEATHER)
-  tmpcmd<-paste("\"",y,"\"=",y,"$WEEK[,-c(1,4)],",sep="")
-  tmpcmd<-paste(tmpcmd,collapse="")
-  tmpcmd<-substr(tmpcmd,1,nchar(tmpcmd)-1)
-  
-  tmpcmd<-paste("X=structure(list(",tmpcmd,"))",sep="")
-  eval(parse(text=tmpcmd))
-  
   
   START=format(min(CHR$Date),format="%Y-%m-%d")
   END=format(Sys.time(),format="%Y-%m-%d")
