@@ -33,7 +33,7 @@ shinyUI(fluidPage(
                                conditionalPanel(condition="input.navbar1=='panel1' & input.navbar11=='api_data'",    
                                                 fileInput('api_file', 'Choose API Data File (otherwise hit update)',
                                                           accept=c('RData')),
-                                                actionButton("refresh","Update API Data"),
+                                                actionButton("refresh","Go Get Data From Internet"),
                                                 textInput("API_SAVE_NAME","Save API to File Name:",value="API_SAVE_NAME"),
                                                 downloadButton("API_SAVE","Download API Data and Tables")
                                                 
@@ -166,8 +166,8 @@ shinyUI(fluidPage(
                                                                                                   h4("Select Delivery Regions to Include"),uiOutput("l3_delivery_region")
                                                                                            ))),value="lane_3_construct"),
                                                    tabPanel("All Lanes Raw Data",dataTableOutput("lanes"),value="all_lanes"),
-                                                   tabPanel("API Data",uiOutput("raw_api"),uiOutput("API_choice"),dataTableOutput("raw_indicators"),value="api_data"),
-                                                   tabPanel("Weather Data",uiOutput("weather_active"),plotOutput("weather_plot"),uiOutput("w_maps"),dataTableOutput("stations_table"),value="weather"),
+                                                   tabPanel("ECON & FUEL API Data",uiOutput("fuel_econ_active"),uiOutput("raw_api"),uiOutput("API_choice"),dataTableOutput("raw_indicators"),value="api_data"),
+                                                   tabPanel("Weather API Data",uiOutput("weather_active"),plotOutput("weather_plot"),uiOutput("w_maps"),dataTableOutput("stations_table"),value="weather"),
                                                    tabPanel("Weekly Averages",dataTableOutput("weekly_averages"),value="weekly_avgs")
                                         )
                                ),

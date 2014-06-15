@@ -16,6 +16,7 @@ shinyServer(function(input, output, session) { # server is defined within these 
   
   ####UI elements for API Choices####
   output$API_choice<-renderUI({
+    if(is.null(API())){return(NULL)}
     DATA_I<-API()[["DATA_I"]]
     dest=names(DATA_I)[-1]
     cc=dest
@@ -825,7 +826,18 @@ shinyServer(function(input, output, session) { # server is defined within these 
   })
   
   
+  ###########################API for Fuel and Economic Indicators ###########################
+  output$fuel_econ_active<-renderUI({
+    if(is.null(API())){
+      h3("You have to Either Click the Browse button to upload a file or Go Get Data from internet button
+         (if this message is showing Fuel/Economic indicators are not active)")
+    }else{
+      return(NULL)
+    } 
+  })
+  
   READ_API <- reactive({###use tmp file from disk or specify names of variables to extract
+    if (input$refresh==0 & is.null(input$api_file)){return(NULL)}
     CENSUS=NULL
     FUEL_DATA=NULL
     path=NULL
@@ -849,7 +861,8 @@ shinyServer(function(input, output, session) { # server is defined within these 
   
   
   API_Update<-reactive({
-    if(input$refresh==0){
+    if (input$refresh==0 & is.null(input$api_file)){return(NULL)}
+    if(input$refresh==0 | is.null(isolate(input$api_names))){
       api_readtable <- READ_API()[["api_readtable"]]
     }
     else{
@@ -862,12 +875,13 @@ shinyServer(function(input, output, session) { # server is defined within these 
   })
   
   API<-reactive({
-    if(is.null(READ_API())){return(NULL)}
+    if (input$refresh==0 & is.null(input$api_file)){return(NULL)}
     CHR<-FINAL()
-    CENSUS<-READ_API()[["CENSUS"]]
-    FUEL_DATA<-READ_API()[["FUEL_DATA"]]
     api_readtable<-API_Update()
     path<-READ_API()[["path"]]
+    CENSUS<-READ_API()[["CENSUS"]]
+    FUEL_DATA<-READ_API()[["FUEL_DATA"]]
+
     
     
     
@@ -2401,6 +2415,7 @@ for (i in 3:4){
   ############################################################
 
 output$raw_api <- renderUI({
+  if (input$refresh==0 & is.null(input$api_file)){return(NULL)}
   api_readtable <- API_Update()
   api_readtable<-data.frame(rbind(toupper(colnames(api_readtable)),as.matrix(api_readtable)))
   if (!is.null(Read_Settings()[["api_names"]])){
@@ -2420,6 +2435,7 @@ output$raw_api <- renderUI({
   
   
   output$raw_indicators <- renderDataTable({
+    if(is.null(API())){return(NULL)}
     DATA_I<-API()[["DATA_I"]]
     dest=names(DATA_I)
     cc=dest
@@ -2432,6 +2448,7 @@ output$raw_api <- renderUI({
   })
   
   output$raw_indicators_2 <- renderDataTable({
+    if(is.null(API())){return(NULL)}
     DATA_I<-API()[["DATA_I"]]
     dest=names(DATA_I)
     cc=dest
@@ -2444,6 +2461,7 @@ output$raw_api <- renderUI({
   })
   
   output$raw_indicators_3 <- renderDataTable({
+    if(is.null(API())){return(NULL)}
     DATA_I<-API()[["DATA_I"]]
     dest=names(DATA_I)
     cc=dest
@@ -2596,17 +2614,17 @@ output$stop_table_current <- renderUI({
   stopnames <- c("Lower Stop Count", "Upper Stop Count", "Avg RPM", "Avg Mileage")
   startvals <- c(min(datset[["Stop_Count"]]),max(datset[["Stop_Count"]]),1,1)
   stop_table<-data.frame(rbind(toupper(stopnames),startvals))
-  if (!is.null(Read_Settings()[["stop_table3"]])){
-    stop_table<-data.frame(Read_Settings()[["stop_table3"]])
+  if (!is.null(Read_Settings()[["stop_table_current"]])){
+    stop_table<-data.frame(Read_Settings()[["stop_table_current"]])
   }
   
-  if((!is.null(input$stop_table3)) && (nrow(input$stop_table3) >= 2)){
-    valmatrix <- matrix(data = NA, nrow = nrow(input$stop_table3) - 1, ncol = 4)
-    for (i in 2:nrow(input$stop_table3)){
-      if(!(is.na(as.numeric(input$stop_table3[i,1])) | is.na(as.numeric(input$stop_table3[i,2])))){
-        avgsub <- which(datset[["Stop_Count"]] %in% c(as.numeric(input$stop_table3[i,1]):as.numeric(input$stop_table3[i,2])))
-        valmatrix[i-1,1] <- input$stop_table3[i,1]
-        valmatrix[i-1,2] <- input$stop_table3[i,2]
+  if((!is.null(input$stop_table_current)) && (nrow(input$stop_table_current) >= 2)){
+    valmatrix <- matrix(data = NA, nrow = nrow(input$stop_table_current) - 1, ncol = 4)
+    for (i in 2:nrow(input$stop_table_current)){
+      if(!(is.na(as.numeric(input$stop_table_current[i,1])) | is.na(as.numeric(input$stop_table_current[i,2])))){
+        avgsub <- which(datset[["Stop_Count"]] %in% c(as.numeric(input$stop_table_current[i,1]):as.numeric(input$stop_table_current[i,2])))
+        valmatrix[i-1,1] <- input$stop_table_current[i,1]
+        valmatrix[i-1,2] <- input$stop_table_current[i,2]
         valmatrix[i-1,3] <- round(mean(datset[["RPM"]][avgsub]), digits = 3)
         valmatrix[i-1,4] <- round(mean(datset[["Total_Mileage"]][avgsub]), digits = 1)
       }
