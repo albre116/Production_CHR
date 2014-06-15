@@ -837,7 +837,7 @@ shinyServer(function(input, output, session) { # server is defined within these 
   })
   
   READ_API <- reactive({###use tmp file from disk or specify names of variables to extract
-    if (input$refresh==0 & is.null(input$api_file)){return(NULL)}
+    #if (input$refresh==0 & is.null(input$api_file)){return(NULL)}
     CENSUS=NULL
     FUEL_DATA=NULL
     path=NULL
@@ -861,7 +861,7 @@ shinyServer(function(input, output, session) { # server is defined within these 
   
   
   API_Update<-reactive({
-    if (input$refresh==0 & is.null(input$api_file)){return(NULL)}
+    #if (input$refresh==0 & is.null(input$api_file)){return(NULL)}
     if(input$refresh==0 | is.null(isolate(input$api_names))){
       api_readtable <- READ_API()[["api_readtable"]]
     }
@@ -2415,7 +2415,7 @@ for (i in 3:4){
   ############################################################
 
 output$raw_api <- renderUI({
-  if (input$refresh==0 & is.null(input$api_file)){return(NULL)}
+  #if (input$refresh==0 & is.null(input$api_file)){return(NULL)}
   api_readtable <- API_Update()
   api_readtable<-data.frame(rbind(toupper(colnames(api_readtable)),as.matrix(api_readtable)))
   if (!is.null(Read_Settings()[["api_names"]])){
