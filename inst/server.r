@@ -649,9 +649,8 @@ shinyServer(function(input, output, session) { # server is defined within these 
     date_cols<-grep("date",colnames(x))
     x<-x[,-date_cols]
     colnames(x)<-gsub("_data","",colnames(x))
-    
+    sel=NULL
     choice<-colnames(x)
-    sel<-choice[which(choice %in% "Oil_Fuel.Weekly.U.S..No.2.Diesel.Retail.Prices...Dollars.per.Gallon.")]
     if (!is.null(Read_Settings())){
       sel <- choice[which(choice%in%Read_Settings()[["predictors"]])]}
     checkboxGroupInput(inputId = "predictors",
@@ -685,9 +684,10 @@ shinyServer(function(input, output, session) { # server is defined within these 
     x<-x[,-date_cols]
     colnames(x)<-gsub("_data","",colnames(x))
     
+
     choice<-colnames(x)
     choice_r<-choice[grep("RPM",colnames(x))]
-    sel_r<-choice_r[which(choice_r %in% "CHR_Lane_1.RPM")]
+    sel_r<-choice_r[choice_r %in% paste(input$lane1_id,".RPM",sep="")]
     
     if (!is.null(Read_Settings()[["response"]])){
       sel_r <- choice_r[which(choice_r%in%Read_Settings()[["response"]])]}
@@ -929,18 +929,26 @@ shinyServer(function(input, output, session) { # server is defined within these 
     }
     Indicators<-out
     
+    
+    X<-list()
     for (i in names(Indicators)){
-      tmpcmd<-paste(i,"=averages(Indicators[[\"",i,"\"]],d_index=1)",sep="")
-      eval(parse(text=tmpcmd))
+      tmp<-averages(Indicators[[i]],d_index=1)
+      X[[i]]<-tmp$WEEK[,-c(1,4)]
     }
     
-    y=names(Indicators)
-    tmpcmd<-paste("\"",y,"\"=",y,"$WEEK[,-c(1,4)],",sep="")
-    tmpcmd<-paste(tmpcmd,collapse="")
-    tmpcmd<-substr(tmpcmd,1,nchar(tmpcmd)-1)
     
-    tmpcmd<-paste("X=structure(list(",tmpcmd,"))",sep="")
-    eval(parse(text=tmpcmd))
+#     for (i in names(Indicators)){
+#       tmpcmd<-paste(i,"=averages(Indicators[[\"",i,"\"]],d_index=1)",sep="")
+#       eval(parse(text=tmpcmd))
+#     }
+#     
+#     y=names(Indicators)
+#     tmpcmd<-paste("\"",y,"\"=",y,"$WEEK[,-c(1,4)],",sep="")
+#     tmpcmd<-paste(tmpcmd,collapse="")
+#     tmpcmd<-substr(tmpcmd,1,nchar(tmpcmd)-1)
+#     
+#     tmpcmd<-paste("X=structure(list(",tmpcmd,"))",sep="")
+#     eval(parse(text=tmpcmd))
     
 
     START=format(min(CHR$Date),format="%Y-%m-%d")
@@ -1407,7 +1415,6 @@ shinyServer(function(input, output, session) { # server is defined within these 
   })
   
   FINAL<-reactive({
-    
     CHR<-switch(input$lanes_choice,
                 "1"={L1()},
                 "2"={rbind(L1(),L2())},
@@ -1426,35 +1433,45 @@ shinyServer(function(input, output, session) { # server is defined within these 
     DATA_FILL_W<-WEATHER()[["DATA_FILL_W"]]
     
     
-    
-    roll<-unique(CHR$Constructed_Lane)
-    for (i in 1:length(roll)){
-      y<-roll[i]
-      tmpcmd<-paste("CHR_",y,"=averages(CHR[which(CHR$Constructed_Lane==\"",y,"\"),c(1,2,12)],d_index=1)",sep="")
-      eval(parse(text=tmpcmd))
+    X<-list()
+    for (i in unique(CHR$Constructed_Lane)){
+      tmp<-averages(CHR[CHR$Constructed_Lane==i,c(1,2,12)],d_index=1)
+      X[[i]]<-tmp$WEEK[,-c(1)]
     }
     
-    y=roll
-    tmpcmd<-paste("\"CHR_",y,"\"=CHR_",y,"$WEEK[,-c(1)],",sep="")
-    tmpcmd<-paste(tmpcmd,collapse="")
-    tmpcmd_1<-substr(tmpcmd,1,nchar(tmpcmd)-1)
     
-    tmpcmd<-paste("X=structure(list(",tmpcmd_1,"))",sep="")
-    eval(parse(text=tmpcmd))
-    str(X)
-    length(ls(X))
+#     roll<-unique(CHR$Constructed_Lane)
+#     for (i in 1:length(roll)){
+#       y<-roll[i]
+#       tmpcmd<-paste("CHR_",y,"=averages(CHR[which(CHR$Constructed_Lane==\"",y,"\"),c(1,2,12)],d_index=1)",sep="")
+#       eval(parse(text=tmpcmd))
+#     }
+#     
+#     y=roll
+#     tmpcmd<-paste("\"CHR_",y,"\"=CHR_",y,"$WEEK[,-c(1)],",sep="")
+#     tmpcmd<-paste(tmpcmd,collapse="")
+#     tmpcmd_1<-substr(tmpcmd,1,nchar(tmpcmd)-1)
+#     
+#     tmpcmd<-paste("X=structure(list(",tmpcmd_1,"))",sep="")
+#     eval(parse(text=tmpcmd))
+
+    
+    
     DATA<-align_week(X,d_index=rep(1,length(ls(X))),start=format(min(CHR$Date),format="%Y-%m-%d"),end=format(Sys.time(),format="%Y-%m-%d"))
     for (i in 2:length(DATA)){
       DATA[[i]]<-DATA[[i]][-c(1)]
     }
     
+    DATA_T<-DATA
+
+    if(!is.null(DATA_I)){
     dest=names(DATA_I)
     cc=dest
     for (i in 2:length(dest)){
       cc[i]=colnames(DATA_I[[dest[i]]])
     }
     keep<-cc %in% input$API_choice
-    DATA_T<-c(DATA,DATA_I[keep])
+    DATA_T<-c(DATA,DATA_I[keep])}
     
     if(!is.null(DATA_W)){###add in weather
       weath<-names(DATA_W)
@@ -1470,8 +1487,9 @@ shinyServer(function(input, output, session) { # server is defined within these 
       } else{
         DATA_FILL<-GAM_fill(DATA,t_index=1,gamma=0.5)}
     
-    
+    if(!is.null(DATA_FILL_I)){
     DATA_FILL<-c(DATA_FILL,DATA_FILL_I[keep])
+    }
     if(!is.null(DATA_FILL_W)){###add in weather
      DATA_FILL<-c(DATA_FILL,DATA_FILL_W[weath[-1]])
     }
@@ -2570,22 +2588,25 @@ output$stop_table3 <- renderUI({
   ###you can access these values with input$stop_table3 as the variable anywhere in the server side file
   
 })
+
+
 output$stop_table_current <- renderUI({
   datset <- FINAL()
+  datset<-datset[datset[["Constructed_Lane"]] %in% gsub(".RPM","",input$response),]###this is needed with multiple lanes constructed to pull the response
   stopnames <- c("Lower Stop Count", "Upper Stop Count", "Avg RPM", "Avg Mileage")
   startvals <- c(min(datset[["Stop_Count"]]),max(datset[["Stop_Count"]]),1,1)
   stop_table<-data.frame(rbind(toupper(stopnames),startvals))
-  if (!is.null(Read_Settings()[["stop_table_current"]])){
-    stop_table<-data.frame(Read_Settings()[["stop_table_current"]])
+  if (!is.null(Read_Settings()[["stop_table3"]])){
+    stop_table<-data.frame(Read_Settings()[["stop_table3"]])
   }
   
-  if((!is.null(input$stop_table_current)) && (nrow(input$stop_table_current) >= 2)){
-    valmatrix <- matrix(data = NA, nrow = nrow(input$stop_table_current) - 1, ncol = 4)
-    for (i in 2:nrow(input$stop_table_current)){
-      if(!(is.na(as.numeric(input$stop_table_current[i,1])) | is.na(as.numeric(input$stop_table_current[i,2])))){
-        avgsub <- which(datset[["Stop_Count"]] %in% c(as.numeric(input$stop_table_current[i,1]):as.numeric(input$stop_table_current[i,2])))
-        valmatrix[i-1,1] <- input$stop_table_current[i,1]
-        valmatrix[i-1,2] <- input$stop_table_current[i,2]
+  if((!is.null(input$stop_table3)) && (nrow(input$stop_table3) >= 2)){
+    valmatrix <- matrix(data = NA, nrow = nrow(input$stop_table3) - 1, ncol = 4)
+    for (i in 2:nrow(input$stop_table3)){
+      if(!(is.na(as.numeric(input$stop_table3[i,1])) | is.na(as.numeric(input$stop_table3[i,2])))){
+        avgsub <- which(datset[["Stop_Count"]] %in% c(as.numeric(input$stop_table3[i,1]):as.numeric(input$stop_table3[i,2])))
+        valmatrix[i-1,1] <- input$stop_table3[i,1]
+        valmatrix[i-1,2] <- input$stop_table3[i,2]
         valmatrix[i-1,3] <- round(mean(datset[["RPM"]][avgsub]), digits = 3)
         valmatrix[i-1,4] <- round(mean(datset[["Total_Mileage"]][avgsub]), digits = 1)
       }
@@ -2594,7 +2615,7 @@ output$stop_table_current <- renderUI({
   }
   
   matrixCustom('stop_table_current', 'Rate and Mileage Between Stop Counts',stop_table)
-  ###you can access these values with input$stop_table_current as the variable anywhere in the server side file
+  ###you can access these values with input$stop_table3 as the variable anywhere in the server side file
   
 })
   
