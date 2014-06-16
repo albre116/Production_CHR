@@ -1262,6 +1262,7 @@ shinyServer(function(input, output, session) { # server is defined within these 
     
     ALL<-rbind(ALL,DIFFERENCE_NORMAL)###replace the dropped averages
     
+
   return(list(ALL=ALL))
   })
     
@@ -1290,20 +1291,6 @@ shinyServer(function(input, output, session) { # server is defined within these 
     colnames(WEATHER[[i]])<-c("date",i)
   }  
     
-    
-#   for (i in names(WEATHER)){
-#     tmpcmd<-paste(i,"=averages(WEATHER[[\"",i,"\"]],d_index=1)",sep="")
-#     eval(parse(text=tmpcmd))
-#   }
-#   
-# 
-#   y=names(WEATHER)
-#   tmpcmd<-paste("\"",y,"\"=",y,"$WEEK[,-c(1,4)],",sep="")
-#   tmpcmd<-paste(tmpcmd,collapse="")
-#   tmpcmd<-substr(tmpcmd,1,nchar(tmpcmd)-1)
-#   
-#   tmpcmd<-paste("X=structure(list(",tmpcmd,"))",sep="")
-#   eval(parse(text=tmpcmd))
 
   X<-list()
   for (i in names(WEATHER)){
@@ -1316,6 +1303,14 @@ shinyServer(function(input, output, session) { # server is defined within these 
   DATA_W<-align_week(X,d_index=rep(1,length(ls(X))),start=START,end=END)
   for (i in 2:length(DATA_W)){
     DATA_W[[i]]<-DATA_W[[i]][-c(1)]
+    ###code NA snow and precip events as 0 instead of NA's
+    if (length(grep("PRCP",names(DATA_W[[i]])))>0){
+      DATA_W[[i]][is.na(DATA_W[[i]])]<-0
+    }
+    if (length(grep("SNOW",names(DATA_W[[i]])))>0){
+      DATA_W[[i]][is.na(DATA_W[[i]])]<-0
+    }
+
   }
   
   #DATA_FILL_I<-loess_fill(DATA_I,t_index=1,span=c(10:1/10),folds=5)
