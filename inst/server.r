@@ -2869,11 +2869,41 @@ output$quote_final_title<-renderText({
   
 })
 
-output$quote_final<-renderDataTable({
+user_integ_vals <- reactive({
   smooth_vals<-mod()[["smooth_data"]]
   vol_vals<-vol_integrator()
+  idxx<-smooth_vals[[5]]=="observed"
+  smooth_vals_short <- smooth_vals[!idxx,]
+  vol_vals_short <- vol_vals[!idxx,]
+  user_vals_short <- cbind(as.Date(input$matrix_volume[,1]),as.numeric(input$matrix_volume[,2]),as.numeric(input$matrix_volume[,3]))
+  
+  for (i in 1:nrow(smooth_vals_short)){
+    if(round(smooth_vals_short[i,2],2) != user_vals_short[i,2]){
+      lcl_diff <- smooth_vals_short[i,3] - smooth_vals_short[i,2]
+      ucl_diff <- smooth_vals_short[i,4] - smooth_vals_short[i,2]
+      smooth_vals_short[i,2] <- user_vals_short[i,2]
+      smooth_vals_short[i,3] <- user_vals_short[i,2] + lcl_diff
+      smooth_vals_short[i,4] <- user_vals_short[i,2] + ucl_diff
+    }
+    if(round(vol_vals_short[i,2],2) != user_vals_short[i,3]){
+      vol_vals_short[i,2] <- user_vals_short[i,3]
+    }
+  }
+  
+  smooth_vals[!idxx,] <- smooth_vals_short
+  vol_vals[!idxx,] <- vol_vals_short
+  
+  outs <- structure(list("smooth_vals"=smooth_vals, "vol_vals"=vol_vals))
+  return(outs)
+  
+})
+
+output$quote_final<-renderDataTable({
+  smooth_vals<-user_integ_vals()[["smooth_vals"]]
+  vol_vals<-user_integ_vals()[["vol_vals"]]
   datevect <- smooth_vals[[1]]
   idx<-datevect>=input$quote_date[1] & datevect<=input$quote_date[2]
+  userdatesel <- input$matrix_volume[,1] >=input$quote_date[1] & input$matrix_volume[,1]<=input$quote_date[2]
   idxx<-smooth_vals[[5]]=="observed"
   CI_labs<-colnames(smooth_vals)[3:4]
   datatrans <- matrix(NA,nrow=nrow(smooth_vals),ncol = 2)
@@ -2883,15 +2913,18 @@ output$quote_final<-renderDataTable({
   #datatrans[!idxx,4] <- vol_vals[[2]][!idxx]
   datevect <- smooth_vals[[1]]
   datatrans <- data.frame(datevect,datatrans)
-  rpm <- smooth_vals[[2]][idx]
-  volume <- vol_vals[[2]][idx]
+  smooth_vals_short <- smooth_vals[idx,]
+  vol_vals_short <- vol_vals[idx,]
+  
+  rpm <- smooth_vals_short[[2]]
+  volume <- vol_vals_short[[2]]
   intquote<-round(sum(rpm*volume,na.rm=T)/sum(volume,na.rm=T),2)
-  intquoteLCL<-round(sum(smooth_vals[[3]][idx]*volume,na.rm=T)/sum(volume,na.rm=T),2)
-  intquoteUCL<-round(sum(smooth_vals[[4]][idx]*volume,na.rm=T)/sum(volume,na.rm=T),2)
+  intquoteLCL<-round(sum(smooth_vals_short[[3]]*volume,na.rm=T)/sum(volume,na.rm=T),2)
+  intquoteUCL<-round(sum(smooth_vals_short[[4]]*volume,na.rm=T)/sum(volume,na.rm=T),2)
   
   rateavg<-round(mean(rpm,na.rm=T),2)
-  rateavgLCL <- round(mean(smooth_vals[[3]][idx],na.rm=T),2)
-  rateavgUCL <- round(mean(smooth_vals[[4]][idx],na.rm=T),2)
+  rateavgLCL <- round(mean(smooth_vals_short[[3]],na.rm=T),2)
+  rateavgUCL <- round(mean(smooth_vals_short[[4]],na.rm=T),2)
   
   volavg<-round(mean(volume,na.rm=T),2)
   quotetable <- data.frame(cbind(c("Mean", CI_labs[2], CI_labs[1]),c(intquote,intquoteUCL,intquoteLCL),c(rateavg,rateavgUCL,rateavgLCL),c(volavg,NA,NA)))
@@ -2906,8 +2939,8 @@ output$quote_final<-renderDataTable({
 ########################### FUCK           ###################################
 ######################################################################################
 output$quote_value<- renderChart({
-  smooth_vals<-mod()[["smooth_data"]]
-  vol_vals<-vol_integrator()
+  smooth_vals<-user_integ_vals()[["smooth_vals"]]
+  vol_vals<-user_integ_vals()[["vol_vals"]]
   datevect <- smooth_vals[[1]]
   seldate<-datevect>=input$quote_date[1] & datevect<=input$quote_date[2]
   idxx<-smooth_vals[[5]]=="observed"
@@ -2928,24 +2961,23 @@ output$quote_value<- renderChart({
   datatrans <- reshape2::melt(datatrans,id= 'date', na.rm = TRUE)
   datatrans[,1] <- as.numeric(as.POSIXct((as.numeric(datatrans[,1])*1000*24*60*60), origin = "1970-01-01"))
   
+  #   datatrans <- matrix(NA,nrow=nrow(smooth_vals),ncol = 2)
+  #   datatrans[idxx,1] <- smooth_vals[[2]][idxx]
+  #   #datatrans[idxx,2] <- vol_vals[[2]][idxx]
+  #   datatrans[!idxx,2] <- as.numeric(input$matrix_volume[,2])
+  #   #datatrans[!idxx,4] <- vol_vals[[2]][!idxx]
+  #   datevect <- smooth_vals[[1]]
+  #   datatrans <- data.frame(datevect,datatrans)
+  rpm <- smooth_vals[[2]][seldate]
+  volume <- vol_vals[[2]][seldate]
+  quote<-round(mean(rpm,na.rm=T),2)
+  quoteLCL <- round(mean(smooth_vals[[3]][seldate],na.rm=T),2)
+  quoteUCL <- round(mean(smooth_vals[[4]][seldate],na.rm=T),2)  
   
-#   datatrans <- matrix(NA,nrow=nrow(smooth_vals),ncol = 2)
-#   datatrans[idxx,1] <- smooth_vals[[2]][idxx]
-#   #datatrans[idxx,2] <- vol_vals[[2]][idxx]
-#   datatrans[!idxx,2] <- as.numeric(input$matrix_volume[,2])
-#   #datatrans[!idxx,4] <- vol_vals[[2]][!idxx]
-#   datevect <- smooth_vals[[1]]
-#   datatrans <- data.frame(datevect,datatrans)
-rpm <- smooth_vals[[2]][seldate]
-volume <- vol_vals[[2]][seldate]
-quote<-round(mean(rpm,na.rm=T),2)
-quoteLCL <- round(mean(smooth_vals[[3]][seldate],na.rm=T),2)
-quoteUCL <- round(mean(smooth_vals[[4]][seldate],na.rm=T),2)  
-
-
-#   colnames(datatrans) <- c("date","Rate_observed","Rate_predicted")
-#   datatrans <- reshape2::melt(datatrans,id= 'date', na.rm = TRUE)
-#   datatrans[,1] <- as.numeric(as.POSIXct((as.numeric(datatrans[,1])*1000*24*60*60), origin = "1970-01-01"))
+  
+  #   colnames(datatrans) <- c("date","Rate_observed","Rate_predicted")
+  #   datatrans <- reshape2::melt(datatrans,id= 'date', na.rm = TRUE)
+  #   datatrans[,1] <- as.numeric(as.POSIXct((as.numeric(datatrans[,1])*1000*24*60*60), origin = "1970-01-01"))
   theGraph <- hPlot(value ~ date, group = 'variable', data = datatrans, type = 'line', title = paste("Average Rate Per Mile:$",quote, sep=""), subtitle = "")
   theGraph$chart(zoomType = "x")
   min_band<-as.numeric(as.POSIXct((as.numeric(input$quote_date[1])*1000*24*60*60), origin = "1970-01-01"))
@@ -2966,12 +2998,11 @@ quoteUCL <- round(mean(smooth_vals[[4]][seldate],na.rm=T),2)
 ########################### FUCK           ###################################
 ######################################################################################
 output$quote_volume<- renderChart({
-  smooth_vals<-mod()[["smooth_data"]]
-  vol_vals<-vol_integrator()
+  smooth_vals<-user_integ_vals()[["smooth_vals"]]
+  vol_vals<-user_integ_vals()[["vol_vals"]]
   datevect <- smooth_vals[[1]]
   idx<-datevect>=input$quote_date[1] & datevect<=input$quote_date[2]
   idxx<-smooth_vals[[5]]=="observed"
-  
   
   datatrans <- matrix(NA,nrow=nrow(smooth_vals),ncol = 2)
   #datatrans[idxx,1] <- smooth_vals[[2]][idxx]
@@ -2997,7 +3028,7 @@ output$quote_volume<- renderChart({
   theGraph$addParams(dom = 'quote_volume')
   return(theGraph)
   
-}) 
+})
 
 
 
