@@ -2506,14 +2506,14 @@ output$stop_table1 <- renderUI({
   if (!is.null(Read_Settings()[["stop_table1"]])){
     stop_table<-data.frame(Read_Settings()[["stop_table1"]])
   }
-  
+
   if((!is.null(input$stop_table1)) && (nrow(input$stop_table1) >= 2)){
     valmatrix <- matrix(data = NA, nrow = nrow(input$stop_table1) - 1, ncol = 4)
     for (i in 2:nrow(input$stop_table1)){
       if(!(is.na(as.numeric(input$stop_table1[i,1])) | is.na(as.numeric(input$stop_table1[i,2])))){
-        avgsub <- which(datset[["Stop_Count"]] %in% c(as.numeric(input$stop_table1[i,1]):as.numeric(input$stop_table1[i,2])))
-        valmatrix[i-1,1] <- input$stop_table1[i,1]
-        valmatrix[i-1,2] <- input$stop_table1[i,2]
+        valmatrix[i-1,1] <- max(as.numeric(input$stop_table1[i,1]), startvals[1])
+        valmatrix[i-1,2] <- min(as.numeric(input$stop_table1[i,2]), startvals[2])
+        avgsub <- which(datset[["Stop_Count"]] %in% c(valmatrix[i-1,1]:valmatrix[i-1,2]))
         valmatrix[i-1,3] <- round(mean(datset[["RPM"]][avgsub]), digits = 3)
         valmatrix[i-1,4] <- round(mean(datset[["Total_Mileage"]][avgsub]), digits = 1)
       }
@@ -2549,9 +2549,9 @@ output$stop_table2 <- renderUI({
     valmatrix <- matrix(data = NA, nrow = nrow(input$stop_table2) - 1, ncol = 4)
     for (i in 2:nrow(input$stop_table2)){
       if(!(is.na(as.numeric(input$stop_table2[i,1])) | is.na(as.numeric(input$stop_table2[i,2])))){
-        avgsub <- which(datset[["Stop_Count"]] %in% c(as.numeric(input$stop_table2[i,1]):as.numeric(input$stop_table2[i,2])))
-        valmatrix[i-1,1] <- input$stop_table2[i,1]
-        valmatrix[i-1,2] <- input$stop_table2[i,2]
+        valmatrix[i-1,1] <- max(as.numeric(input$stop_table2[i,1]), startvals[1])
+        valmatrix[i-1,2] <- min(as.numeric(input$stop_table2[i,2]), startvals[2])
+        avgsub <- which(datset[["Stop_Count"]] %in% c(valmatrix[i-1,1]:valmatrix[i-1,2]))
         valmatrix[i-1,3] <- round(mean(datset[["RPM"]][avgsub]), digits = 3)
         valmatrix[i-1,4] <- round(mean(datset[["Total_Mileage"]][avgsub]), digits = 1)
       }
@@ -2587,9 +2587,9 @@ output$stop_table3 <- renderUI({
     valmatrix <- matrix(data = NA, nrow = nrow(input$stop_table3) - 1, ncol = 4)
     for (i in 2:nrow(input$stop_table3)){
       if(!(is.na(as.numeric(input$stop_table3[i,1])) | is.na(as.numeric(input$stop_table3[i,2])))){
-        avgsub <- which(datset[["Stop_Count"]] %in% c(as.numeric(input$stop_table3[i,1]):as.numeric(input$stop_table3[i,2])))
-        valmatrix[i-1,1] <- input$stop_table3[i,1]
-        valmatrix[i-1,2] <- input$stop_table3[i,2]
+        valmatrix[i-1,1] <- max(as.numeric(input$stop_table3[i,1]), startvals[1])
+        valmatrix[i-1,2] <- min(as.numeric(input$stop_table3[i,2]), startvals[2])
+        avgsub <- which(datset[["Stop_Count"]] %in% c(valmatrix[i-1,1]:valmatrix[i-1,2]))
         valmatrix[i-1,3] <- round(mean(datset[["RPM"]][avgsub]), digits = 3)
         valmatrix[i-1,4] <- round(mean(datset[["Total_Mileage"]][avgsub]), digits = 1)
       }
@@ -2617,9 +2617,9 @@ output$stop_table_current <- renderUI({
     valmatrix <- matrix(data = NA, nrow = nrow(input$stop_table_current) - 1, ncol = 4)
     for (i in 2:nrow(input$stop_table_current)){
       if(!(is.na(as.numeric(input$stop_table_current[i,1])) | is.na(as.numeric(input$stop_table_current[i,2])))){
-        avgsub <- which(datset[["Stop_Count"]] %in% c(as.numeric(input$stop_table_current[i,1]):as.numeric(input$stop_table_current[i,2])))
-        valmatrix[i-1,1] <- input$stop_table_current[i,1]
-        valmatrix[i-1,2] <- input$stop_table_current[i,2]
+        valmatrix[i-1,1] <- max(as.numeric(input$stop_table_current[i,1]), startvals[1])
+        valmatrix[i-1,2] <- min(as.numeric(input$stop_table_current[i,2]), startvals[2])
+        avgsub <- which(datset[["Stop_Count"]] %in% c(valmatrix[i-1,1]:valmatrix[i-1,2]))
         valmatrix[i-1,3] <- round(mean(datset[["RPM"]][avgsub]), digits = 3)
         valmatrix[i-1,4] <- round(mean(datset[["Total_Mileage"]][avgsub]), digits = 1)
       }
